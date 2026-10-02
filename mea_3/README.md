@@ -42,10 +42,10 @@ Other lights of the room: `2025-12-02_room_epifluo`, `_binocular`, `_head_light`
 ### Caveats
 
 - ⚠ **Saturated**: the spectrometer reached its plateau, so the peak is flattened and the
-  normalised spectrum overestimates the tails. It should be re-measured with a shorter
+  normalised spectrum overestimates the tails. The fit bridges the saturated pixels, but it should be re-measured with a shorter
   integration time or an ND filter.
-- The after-MEA measurements are dim (1–3k counts peak for 385, 420, 490 and 595 nm,
-  against ~55k at the fibre). The 150-count noise threshold therefore cuts them at about
-  5–10 % of the peak, so their tails are lost.
+- The after-MEA measurements are dim (1–3k counts peak for 385, 420, 490 and 595 nm, against
+  ~55k at the fibre). Their noise floor is around 10^-1.5–10^-2 of the peak, so below that the
+  fit is a log-linear extrapolation, not a measurement.
 - The spectrometer clock is wrong (files are dated 2010). The dates come from the folder names
   of the original measurements.
