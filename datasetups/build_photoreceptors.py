@@ -4,7 +4,7 @@ Mouse photoreceptor spectra: Govardovskii A1 templates fitted on the original da
 
     python -m datasetups.build_photoreceptors
 
-Reads photoreceptors/source/<PR>.csv (original data, Fred Rieke's lab, University of
+Reads photoreceptors/litterature_data/<PR>.csv (original data, Fred Rieke's lab, University of
 Washington, from their public GitHub repository) and writes
   photoreceptors/spectra/<PR>.csv           spectra used for the OSS theoretical surfaces
   photoreceptors/spectra/lambda_max.csv     fitted λmax of every template
@@ -27,7 +27,7 @@ from scipy.optimize import minimize_scalar
 
 REPO       = Path(__file__).resolve().parent.parent
 PR_DIR     = REPO / "photoreceptors"
-SOURCE_DIR = PR_DIR / "source"
+SOURCE_DIR = PR_DIR / "litterature_data"
 OUT_DIR    = PR_DIR / "spectra"
 PLOT_DIR   = PR_DIR / "plots"
 

@@ -8,9 +8,9 @@ and other setup details.
 
 ```
 mea_1/ … mea_4/            one folder per MEA setup
-  light_sources.toml       light sources (LED model, serial number) and measured spectra
-  spectra/raw/<id>/        raw spectrometer traces (Ocean Optics .txt exports)
-  spectra/powermeter/<id>.csv   fitted spectrum, one file per spectrum, to load in the power meter
+  light_sources.toml       light sources (LED model, serial number) and measured spectra (with dates)
+  raw_data/<id>/           raw spectrometer traces (Ocean Optics .txt exports)
+  spectra/<id>.csv         fitted spectrum, one file per spectrum, to load in the power meter
   plots/<id>.png           raw mean vs fitted spectrum
   plots/all_spectra.png    every fitted spectrum of the setup
 photoreceptors/            mouse photoreceptor spectra (Govardovskii templates)
@@ -56,5 +56,5 @@ For each spectrum (`datasetups/spectra.py`), the fit is done in log space on the
 
 ### Adding a setup or a measurement
 
-Copy the raw traces to `mea_N/spectra/raw/<date>_<source>_<position>/`, add a `[[spectrum]]`
+Copy the raw traces to `mea_N/raw_data/<source>_<position>/`, add a `[[spectrum]]` (with its `date`)
 entry to `mea_N/light_sources.toml`, then rebuild.

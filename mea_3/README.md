@@ -24,24 +24,25 @@ Before the optic fibre, the LEDs go through a series of filters (to be documente
 
 ## Spectra
 
-Raw traces are in `spectra/raw/<id>/`, power-meter files in `spectra/powermeter/<id>.csv` and
+All spectra were measured on 2025-12-02 (dates also stored per spectrum in
+`light_sources.toml`). Raw traces are in `raw_data/<id>/`, power-meter files in `spectra/<id>.csv` and
 plots in `plots/<id>.png`.
 
 | Source | After the optic fibre | After the MEA |
 |---|---|---|
-| 385nm | `2025-12-02_385nm_fiber` | `2025-12-02_385nm_mea` |
-| 420nm | `2025-12-02_420nm_fiber` | `2025-12-02_420nm_mea` |
-| 490nm | `2025-12-02_490nm_fiber` | `2025-12-02_490nm_mea` |
-| 530nm | `2025-12-02_530nm_fiber` (slightly saturated) | `2025-12-02_530nm_mea` |
-| 595nm | `2025-12-02_595nm_fiber` | `2025-12-02_595nm_mea` |
-| WarmWhite | `2025-12-02_warmwhite_fiber` | `2025-12-02_warmwhite_mea` |
-| WhiteLamp | `2025-12-02_whitelamp_fiber` | `2025-12-02_whitelamp_mea` |
+| 385nm | `385nm_fiber` | `385nm_mea` |
+| 420nm | `420nm_fiber` | `420nm_mea` |
+| 490nm | `490nm_fiber` | `490nm_mea` |
+| 530nm | `530nm_fiber` (slightly saturated) | `530nm_mea` |
+| 595nm | `595nm_fiber` | `595nm_mea` |
+| WarmWhite | `warmwhite_fiber` | `warmwhite_mea` |
+| WhiteLamp | `whitelamp_fiber` | `whitelamp_mea` |
 
-Other lights of the room: `2025-12-02_room_epifluo`, `_binocular`, `_head_light`, `_microscope`.
+Other lights of the room: `room_epifluo`, `_binocular`, `_head_light`, `_microscope`.
 
 ### Caveats
 
-- **Slight saturation** of `2025-12-02_530nm_fiber` at the top of the peak: the saturated
+- **Slight saturation** of `530nm_fiber` at the top of the peak: the saturated
   pixels are left out and bridged by the fit. The curve outside the saturated window is
   unaffected, and the high signal gives a very low-noise spectrum, so it is kept as is.
 - The after-MEA measurements are dim (1–3k counts peak for 385, 420, 490 and 595 nm, against

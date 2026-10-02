@@ -4,8 +4,9 @@
 #               LEDs are named after the peak wavelength given by their model name.
 #               Before the optic fibre, the LEDs go through a series of filters
 #               (to be documented).
-# [[spectrum]]  one per measured spectrum. Raw traces in spectra/raw/<id>/, fitted
-#               power-meter file in spectra/powermeter/<id>.csv, plot in plots/<id>.png.
+# [[spectrum]]  one per measured spectrum, with the date of the measurement. Raw traces in
+#               raw_data/<id>/, fitted power-meter file in spectra/<id>.csv, plot in
+#               plots/<id>.png.
 #   position:
 #     fiber – measured at the output of the optic fibre
 #     mea   – measured after the MEA (the MEA filters out part of the UV)
@@ -74,91 +75,109 @@ color = "black"
 # --- Spectra -----------------------------------------------------------------
 
 [[spectrum]]
-id = "2025-12-02_385nm_fiber"
+id = "385nm_fiber"
+date = 2025-12-02
 source = "385nm"
 position = "fiber"
 
 [[spectrum]]
-id = "2025-12-02_420nm_fiber"
+id = "420nm_fiber"
+date = 2025-12-02
 source = "420nm"
 position = "fiber"
 
 [[spectrum]]
-id = "2025-12-02_490nm_fiber"
+id = "490nm_fiber"
+date = 2025-12-02
 source = "490nm"
 position = "fiber"
 
 [[spectrum]]
-id = "2025-12-02_530nm_fiber"
+id = "530nm_fiber"
+date = 2025-12-02
 source = "530nm"
 position = "fiber"
 
 [[spectrum]]
-id = "2025-12-02_595nm_fiber"
+id = "595nm_fiber"
+date = 2025-12-02
 source = "595nm"
 position = "fiber"
 
 [[spectrum]]
-id = "2025-12-02_warmwhite_fiber"
+id = "warmwhite_fiber"
+date = 2025-12-02
 source = "WarmWhite"
 position = "fiber"
 
 [[spectrum]]
-id = "2025-12-02_whitelamp_fiber"
+id = "whitelamp_fiber"
+date = 2025-12-02
 source = "WhiteLamp"
 position = "fiber"
 
 [[spectrum]]
-id = "2025-12-02_385nm_mea"
+id = "385nm_mea"
+date = 2025-12-02
 source = "385nm"
 position = "mea"
 
 [[spectrum]]
-id = "2025-12-02_420nm_mea"
+id = "420nm_mea"
+date = 2025-12-02
 source = "420nm"
 position = "mea"
 
 [[spectrum]]
-id = "2025-12-02_490nm_mea"
+id = "490nm_mea"
+date = 2025-12-02
 source = "490nm"
 position = "mea"
 
 [[spectrum]]
-id = "2025-12-02_530nm_mea"
+id = "530nm_mea"
+date = 2025-12-02
 source = "530nm"
 position = "mea"
 
 [[spectrum]]
-id = "2025-12-02_595nm_mea"
+id = "595nm_mea"
+date = 2025-12-02
 source = "595nm"
 position = "mea"
 
 [[spectrum]]
-id = "2025-12-02_warmwhite_mea"
+id = "warmwhite_mea"
+date = 2025-12-02
 source = "WarmWhite"
 position = "mea"
 
 [[spectrum]]
-id = "2025-12-02_whitelamp_mea"
+id = "whitelamp_mea"
+date = 2025-12-02
 source = "WhiteLamp"
 position = "mea"
 
 [[spectrum]]
-id = "2025-12-02_room_epifluo"
+id = "room_epifluo"
+date = 2025-12-02
 source = "Epifluo Lamp"
 position = "room"
 
 [[spectrum]]
-id = "2025-12-02_room_binocular"
+id = "room_binocular"
+date = 2025-12-02
 source = "RedBinocular"
 position = "room"
 
 [[spectrum]]
-id = "2025-12-02_room_head_light"
+id = "room_head_light"
+date = 2025-12-02
 source = "Headlight"
 position = "room"
 
 [[spectrum]]
-id = "2025-12-02_room_microscope"
+id = "room_microscope"
+date = 2025-12-02
 source = "MicroscopeRed"
 position = "room"

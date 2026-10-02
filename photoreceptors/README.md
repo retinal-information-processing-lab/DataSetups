@@ -12,7 +12,7 @@ Mouse photoreceptor spectral sensitivities (`spectra/<PR>.csv`, `wavelength_nm,s
 
 Rods and Mcones are the exact spectra used for the OSS theoretical surfaces.
 
-Measured spectra (`source/`): Fred Rieke's lab (University of Washington), public GitHub
+Measured spectra (`litterature_data/`): Fred Rieke's lab (University of Washington), public GitHub
 repository.
 
 Rebuild with `python -m datasetups.build_photoreceptors`.

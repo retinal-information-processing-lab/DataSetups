@@ -5,7 +5,7 @@ Build the fitted LED spectra of one setup from its raw spectrometer traces.
     python -m datasetups.build_leds mea_3
 
 Reads <setup>/light_sources.toml and, for every spectrum, writes
-  <setup>/spectra/powermeter/<id>.csv   fitted spectrum for the power meter
+  <setup>/spectra/<id>.csv              fitted spectrum for the power meter
   <setup>/plots/<id>.png                raw mean vs fitted (linear + log)
 and the overview <setup>/plots/all_spectra.png.
 """
@@ -49,7 +49,7 @@ def _log(y):
 
 def plot_raw_vs_fit(entry, n_traces, fit, path):
     fig, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(13, 4.2))
-    title = f"{entry['id']} – {entry['label']} ({n_traces} traces)"
+    title = f"{entry['id']} – {entry['label']} – {entry['date']} ({n_traces} traces)"
     if fit.saturated:
         title += "\nslightly saturated at the peak: saturated pixels bridged by the fit"
     fig.suptitle(title, fontsize=11)
@@ -100,14 +100,14 @@ def plot_all(manifest, fits, path):
 def build(setup):
     setup_dir = REPO / setup
     manifest = load_manifest(setup_dir)
-    csv_dir  = setup_dir / "spectra" / "powermeter"
+    csv_dir  = setup_dir / "spectra"
     plot_dir = setup_dir / "plots"
     csv_dir.mkdir(parents=True, exist_ok=True)
     plot_dir.mkdir(parents=True, exist_ok=True)
 
     fits = {}
     for e in manifest["spectrum"]:
-        wl, counts = spectra.read_traces(setup_dir / "spectra" / "raw" / e["id"])
+        wl, counts = spectra.read_traces(setup_dir / "raw_data" / e["id"])
         fit = spectra.fit(wl, counts)
         fits[e["id"]] = fit.fitted
 
