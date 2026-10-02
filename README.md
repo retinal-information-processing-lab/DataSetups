@@ -45,7 +45,8 @@ For each spectrum (`datasetups/spectra.py`):
 
 1. **Extract**: mean of the traces, counts below 150 set to 0, interpolated on a 1 nm grid,
    normalised, values below 1e-3 set to 0.
-2. **Fit**: resampled at 0.5 nm, smoothed in log space ("savgol+spline"). Values above
+2. **Fit**: resampled at 0.5 nm, lightly smoothed over the whole curve (Savitzky-Golay,
+   11 points = 5 nm, order 3, zero regions kept at 0), then smoothed in log space ("savgol+spline"). Values above
    10^-1.5 are kept, a Savitzky-Golay filter (51 points, order 3) is used below that, and a
    cubic spline runs over the whole curve before renormalisation.
 3. **Export**: the fitted spectrum on the 1 nm power-meter grid.

@@ -5,7 +5,8 @@ Pipeline, for one folder of repeated spectrometer traces:
   1. extract  – mean of the traces, counts below MIN_COUNTS set to 0, interpolated
                 on a 1 nm grid, normalised to 1 at peak, values < 1e-3 set to 0
                 (same as process_led_data in the original Calibrations.ipynb).
-  2. fit      – resampled on a 0.5 nm grid, then "savgol+spline" smoothing in log
+  2. fit      – resampled on a 0.5 nm grid, light Savitzky-Golay over the whole curve
+                (PRE_SMOOTH_WINDOW points, order 3), then "savgol+spline" smoothing in log
                 space: raw above 10^-1.5, Savitzky-Golay below, cubic spline over
                 the whole, renormalised to 1 at peak (same as led_spectra.py in
                 OSS_Theoretical, used for the OSS theoretical surfaces).
@@ -28,6 +29,7 @@ FIT_GRID        = np.arange(350, 850.5, 0.5)  # 0.5 nm, as the OSS IlluminationD
 
 INTENSITY_FLOOR = 1e-7
 LOG_FLOOR       = INTENSITY_FLOOR / 10
+PRE_SMOOTH_WINDOW = 11           # points on the 0.5 nm grid (5 nm), light smoothing of the peak
 SATURATION      = 60000           # counts: plateau of the USB2000+ after dark correction
 
 
@@ -77,6 +79,8 @@ def smooth_savgol_spline(spec, split_log=-1.5, savgol_window=51, savgol_polyorde
 def fit(extracted):
     """Smoothed spectrum on the 0.5 nm fit grid, normalised to 1 at peak."""
     spec = np.interp(FIT_GRID, POWERMETER_GRID, extracted)
+    smoothed = np.clip(savgol_filter(spec, PRE_SMOOTH_WINDOW, 3), 0, None)
+    spec = np.where(spec > 0, smoothed, 0)    # no signal created where none was extracted
     return smooth_savgol_spline(spec / spec.max())
 
 
