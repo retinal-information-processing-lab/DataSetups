@@ -41,15 +41,18 @@ python -m datasetups.build_photoreceptors
 
 ### LED fit
 
-For each spectrum (`datasetups/spectra.py`):
+For each spectrum (`datasetups/spectra.py`), the fit is done in log space on the raw traces:
 
-1. **Extract**: mean of the traces, counts below 150 set to 0, interpolated on a 1 nm grid,
-   normalised, values below 1e-3 set to 0.
-2. **Fit**: resampled at 0.5 nm, lightly smoothed over the whole curve (Savitzky-Golay,
-   21 points = 10 nm, order 3, zero regions kept at 0), then smoothed in log space ("savgol+spline"). Values above
-   10^-1.5 are kept, a Savitzky-Golay filter (51 points, order 3) is used below that, and a
-   cubic spline runs over the whole curve before renormalisation.
-3. **Export**: the fitted spectrum on the 1 nm power-meter grid.
+1. **Signal**: mean of the traces, baseline and noise estimated (sigma clipping) on the pixels
+   without light, baseline subtracted, averaged in 0.5 nm bins.
+2. **Region**: wavelengths around the peak where the signal, averaged over 10 nm, is more than
+   5 times its noise (grey band on the plots).
+3. **Fit**: smoothing spline on log10 of the signal in that region, weighted by SNR² (SNR
+   capped at 30 so the peak does not outweigh the tails), smoothing chosen by generalised
+   cross-validation. Saturated pixels are left out.
+4. **Tails**: below the noise, the fit is continued log-linearly with its edge slope (at least
+   one decade per 20 nm).
+5. **Export**: normalised to 1 at the peak, values below 1e-5 set to 0, 1 nm grid.
 
 ### Adding a setup or a measurement
 

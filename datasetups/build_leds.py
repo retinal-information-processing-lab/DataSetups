@@ -47,19 +47,17 @@ def _log(y):
     return np.log10(np.clip(y, 10 ** LOG_YLIM[0] / 10, None))
 
 
-def plot_raw_vs_fit(entry, wl, counts, fitted, saturated, path):
-    raw_mean = counts.mean(axis=0)
-    raw_mean = raw_mean / raw_mean.max()
-
+def plot_raw_vs_fit(entry, n_traces, fit, path):
     fig, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(13, 4.2))
-    title = f"{entry['id']} – {entry['label']} ({len(counts)} traces)"
-    if saturated:
+    title = f"{entry['id']} – {entry['label']} ({n_traces} traces)"
+    if fit.saturated:
         title += "\nWARNING: spectrometer saturated, peak shape is unreliable"
-    fig.suptitle(title, fontsize=11, color="firebrick" if saturated else "black")
+    fig.suptitle(title, fontsize=11, color="firebrick" if fit.saturated else "black")
 
     for ax, f in ((ax_lin, lambda y: y), (ax_log, _log)):
-        ax.plot(wl, f(raw_mean), color="gray", lw=0.8, alpha=0.8, label="raw mean")
-        ax.plot(spectra.FIT_GRID, f(fitted), color=entry["color"], lw=2, label="fitted")
+        ax.axvspan(*fit.region, color="gray", alpha=0.08, label="fitted region")
+        ax.plot(spectra.FIT_GRID, f(fit.signal), color="gray", lw=0.8, alpha=0.8, label="raw mean")
+        ax.plot(spectra.FIT_GRID, f(fit.fitted), color=entry["color"], lw=2, label="fit")
         ax.set_xlim(spectra.FIT_GRID[0], spectra.FIT_GRID[-1])
         ax.set_xlabel("Wavelength (nm)")
         ax.grid(True, alpha=0.3)
@@ -110,14 +108,14 @@ def build(setup):
     fits = {}
     for e in manifest["spectrum"]:
         wl, counts = spectra.read_traces(setup_dir / "spectra" / "raw" / e["id"])
-        fitted = spectra.fit(spectra.extract(wl, counts))
-        saturated = spectra.is_saturated(counts)
-        fits[e["id"]] = fitted
+        fit = spectra.fit(wl, counts)
+        fits[e["id"]] = fit.fitted
 
-        spectra.write_powermeter_csv(csv_dir / f"{e['id']}.csv", spectra.to_powermeter(fitted))
-        plot_raw_vs_fit(e, wl, counts, fitted, saturated, plot_dir / f"{e['id']}.png")
-        peak = spectra.FIT_GRID[fitted.argmax()]
-        print(f"{e['id']:32s} peak {peak:6.1f} nm{'  SATURATED' if saturated else ''}")
+        spectra.write_powermeter_csv(csv_dir / f"{e['id']}.csv", spectra.to_powermeter(fit.fitted))
+        plot_raw_vs_fit(e, len(counts), fit, plot_dir / f"{e['id']}.png")
+        peak = spectra.FIT_GRID[fit.fitted.argmax()]
+        print(f"{e['id']:32s} peak {peak:6.1f} nm  fitted {fit.region[0]:.0f}-{fit.region[1]:.0f} nm"
+              f"{'  SATURATED' if fit.saturated else ''}")
 
     plot_all(manifest, fits, plot_dir / "all_spectra.png")
     print(f"Saved: {plot_dir / 'all_spectra.png'}")

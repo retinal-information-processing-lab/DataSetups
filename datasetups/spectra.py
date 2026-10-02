@@ -1,36 +1,50 @@
 """
-LED spectrum extraction and fitting.
+LED spectrum fitting, done in log space.
 
-Pipeline, for one folder of repeated spectrometer traces:
-  1. extract  – mean of the traces, counts below MIN_COUNTS set to 0, interpolated
-                on a 1 nm grid, normalised to 1 at peak, values < 1e-3 set to 0
-                (same as process_led_data in the original Calibrations.ipynb).
-  2. fit      – resampled on a 0.5 nm grid, light Savitzky-Golay over the whole curve
-                (PRE_SMOOTH_WINDOW points, order 3), then "savgol+spline" smoothing in log
-                space: raw above 10^-1.5, Savitzky-Golay below, cubic spline over
-                the whole, renormalised to 1 at peak (same as led_spectra.py in
-                OSS_Theoretical, used for the OSS theoretical surfaces).
-  3. export   – fitted spectrum on a 1 nm grid, "wavelength,value" without header,
-                ready to be loaded in the power meter.
+For one folder of repeated spectrometer traces:
+  1. signal   – mean of the traces; baseline and noise estimated by sigma clipping on the
+                pixels without signal; baseline subtracted; pixels averaged in 0.5 nm bins.
+  2. region   – contiguous wavelength range around the peak where the signal, averaged
+                over 10 nm, is above SNR_THRESHOLD times its noise.
+  3. fit      – smoothing spline (smoothing chosen by generalised cross-validation) on
+                log10 of the signal inside the region, weighted by SNR² with the SNR capped
+                at SNR_CAP so that the peak does not outweigh the tails. Saturated pixels
+                are left out, so the spline bridges a flattened peak.
+  4. tails    – outside the region, log-linear continuation of the fit with the slope of
+                its last TAIL_NM, decaying by at least MIN_TAIL_SLOPE.
+  5. export   – normalised to 1 at peak, values below FLOOR set to 0, resampled on a
+                1 nm grid, "wavelength,value" without header, for the power meter.
 """
 
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from scipy.interpolate import CubicSpline
-from scipy.signal import savgol_filter
+from scipy.interpolate import make_smoothing_spline
+from scipy.ndimage import uniform_filter1d
 
 DATA_MARKER = ">>>>>Begin Spectral Data<<<<<"
 
-MIN_COUNTS      = 150             # counts below this are treated as noise
-EXTRACT_FLOOR   = 1e-3            # normalised values below this are set to 0
-POWERMETER_GRID = np.arange(351, 850)        # 1 nm, as the existing power-meter files
-FIT_GRID        = np.arange(350, 850.5, 0.5)  # 0.5 nm, as the OSS IlluminationData
+POWERMETER_GRID = np.arange(351, 850)         # 1 nm, as the existing power-meter files
+FIT_GRID        = np.arange(350, 850.5, 0.5)  # 0.5 nm
+STEP            = 0.5
 
-INTENSITY_FLOOR = 1e-7
-LOG_FLOOR       = INTENSITY_FLOOR / 10
-PRE_SMOOTH_WINDOW = 21           # points on the 0.5 nm grid (10 nm), light smoothing of the peak
-SATURATION      = 60000           # counts: plateau of the USB2000+ after dark correction
+SATURATION      = 60000   # counts: plateau of the USB2000+ after dark correction
+SNR_THRESHOLD   = 5       # signal / noise, on a 10 nm running average, to be fitted
+DETECT_NM       = 10      # running average used to detect the signal region
+PRESMOOTH_NM    = 2.5     # running average of the signal before taking its log
+SNR_CAP         = 30      # caps the fit weights: log10 error tolerance ≥ 1/(SNR_CAP·ln10)
+TAIL_NM         = 5       # end of the fit used for the tail slope
+MIN_TAIL_SLOPE  = 0.05    # log10 units per nm: tails decay at least 1 decade per 20 nm
+FLOOR           = 1e-5    # normalised values below this are set to 0
+
+
+@dataclass
+class Fit:
+    fitted: np.ndarray     # on FIT_GRID, normalised to 1 at peak
+    signal: np.ndarray     # baseline-subtracted mean on FIT_GRID, same normalisation
+    region: tuple          # (start, end) nm of the fitted region
+    saturated: bool
 
 
 def read_trace(path):
@@ -53,35 +67,73 @@ def read_traces(folder):
     return wl, np.array([c for _, c in traces])
 
 
-def extract(wl, counts, min_counts=MIN_COUNTS):
-    """Mean spectrum on the 1 nm power-meter grid, thresholded and normalised."""
-    counts = np.where(counts < min_counts, 0.0, counts)
+def baseline_and_noise(mean):
+    """Sigma-clipped median and robust standard deviation of the pixels without signal."""
+    base  = np.median(mean)
+    noise = 1.4826 * np.median(np.abs(mean - base))
+    for _ in range(10):
+        off   = np.abs(mean - base) < 3 * noise
+        base  = np.median(mean[off])
+        noise = 1.4826 * np.median(np.abs(mean[off] - base))
+    return base, noise
+
+
+def _bin(wl, values):
+    """Average pixel values in the 0.5 nm bins of FIT_GRID. Returns (binned, pixels per bin)."""
+    idx = np.clip(np.round((wl - FIT_GRID[0]) / STEP).astype(int), 0, len(FIT_GRID) - 1)
+    n = np.bincount(idx, minlength=len(FIT_GRID))
+    has = n > 0
+    binned = np.bincount(idx, values, len(FIT_GRID))[has] / n[has]
+    return np.interp(FIT_GRID, FIT_GRID[has], binned), np.interp(FIT_GRID, FIT_GRID[has], n[has])
+
+
+def _signal_region(y, noise_bin, exclude):
+    """Contiguous indices around the peak where the 10 nm average is above threshold."""
+    w = int(DETECT_NM / STEP) + 1
+    detect = uniform_filter1d(y, w)
+    good = detect > SNR_THRESHOLD * noise_bin / np.sqrt(w)
+    peak = np.argmax(np.where(exclude, -np.inf, detect))
+    lo = hi = peak
+    while lo > 0 and good[lo - 1]:
+        lo -= 1
+    while hi < len(y) - 1 and good[hi + 1]:
+        hi += 1
+    return lo, hi
+
+
+def fit(wl, counts):
+    """Fit the spectrum of a stack of traces. See module docstring."""
+    saturated_px = (counts >= SATURATION).any(axis=0)
     mean = counts.mean(axis=0)
-    mean /= mean.max()
-    y = np.interp(POWERMETER_GRID, wl, mean)
-    y[y < EXTRACT_FLOOR] = 0
-    return y
+    base, noise = baseline_and_noise(mean)
 
+    y, n_px = _bin(wl, mean - base)
+    saturated = _bin(wl, saturated_px.astype(float))[0] > 0
+    noise_bin = noise / np.sqrt(n_px)
 
-def smooth_savgol_spline(spec, split_log=-1.5, savgol_window=51, savgol_polyorder=3):
-    """Hybrid: raw above split_log, savgol below, then cubic spline over the whole."""
-    lam    = np.arange(len(spec), dtype=float)
-    log_s  = np.log10(np.clip(spec, LOG_FLOOR, None))
-    log_sg = savgol_filter(log_s, window_length=savgol_window, polyorder=savgol_polyorder)
-    hybrid_log = np.where(log_s >= split_log, log_s, log_sg)
-    cs  = CubicSpline(lam, hybrid_log, extrapolate=True)
-    out = np.clip(10 ** np.clip(cs(lam), np.log10(LOG_FLOOR), 0), LOG_FLOOR, None)
-    out /= out.max()
-    out[out <= INTENSITY_FLOOR] = 0
-    return out
+    lo, hi = _signal_region(y, noise_bin, saturated)
+    y_smooth = uniform_filter1d(y, int(PRESMOOTH_NM / STEP) + 1)
+    use = np.zeros(len(y), bool)
+    use[lo:hi + 1] = True
+    use &= (y_smooth > 0) & ~saturated
 
+    weights = np.minimum(y_smooth[use] / noise_bin[use], SNR_CAP) ** 2
+    spline = make_smoothing_spline(FIT_GRID[use], np.log10(y_smooth[use]),
+                                   w=weights / weights.mean())
 
-def fit(extracted):
-    """Smoothed spectrum on the 0.5 nm fit grid, normalised to 1 at peak."""
-    spec = np.interp(FIT_GRID, POWERMETER_GRID, extracted)
-    smoothed = np.clip(savgol_filter(spec, PRE_SMOOTH_WINDOW, 3), 0, None)
-    spec = np.where(spec > 0, smoothed, 0)    # no signal created where none was extracted
-    return smooth_savgol_spline(spec / spec.max())
+    log_fit = np.empty(len(y))
+    log_fit[lo:hi + 1] = spline(FIT_GRID[lo:hi + 1])
+    t = int(TAIL_NM / STEP)
+    left  = max(np.polyfit(FIT_GRID[lo:lo + t], log_fit[lo:lo + t], 1)[0], MIN_TAIL_SLOPE)
+    right = min(np.polyfit(FIT_GRID[hi - t + 1:hi + 1], log_fit[hi - t + 1:hi + 1], 1)[0],
+                -MIN_TAIL_SLOPE)
+    log_fit[:lo]     = log_fit[lo] - left * (FIT_GRID[lo] - FIT_GRID[:lo])
+    log_fit[hi + 1:] = log_fit[hi] + right * (FIT_GRID[hi + 1:] - FIT_GRID[hi])
+
+    peak = log_fit.max()
+    fitted = 10 ** (log_fit - peak)
+    fitted[fitted < FLOOR] = 0
+    return Fit(fitted, y / 10 ** peak, (FIT_GRID[lo], FIT_GRID[hi]), bool(saturated.any()))
 
 
 def to_powermeter(fitted):
@@ -97,8 +149,3 @@ def write_powermeter_csv(path, values):
 def read_powermeter_csv(path):
     data = np.loadtxt(path, delimiter=",")
     return data[:, 0], data[:, 1]
-
-
-def is_saturated(counts):
-    """True if any trace reaches the detector plateau."""
-    return bool((counts >= SATURATION).any())
