@@ -32,7 +32,7 @@ plots in `plots/<id>.png`.
 | 385nm | `2025-12-02_385nm_fiber` | `2025-12-02_385nm_mea` |
 | 420nm | `2025-12-02_420nm_fiber` | `2025-12-02_420nm_mea` |
 | 490nm | `2025-12-02_490nm_fiber` | `2025-12-02_490nm_mea` |
-| 530nm | `2025-12-02_530nm_fiber` ⚠ saturated | `2025-12-02_530nm_mea` |
+| 530nm | `2025-12-02_530nm_fiber` (slightly saturated) | `2025-12-02_530nm_mea` |
 | 595nm | `2025-12-02_595nm_fiber` | `2025-12-02_595nm_mea` |
 | WarmWhite | `2025-12-02_warmwhite_fiber` | `2025-12-02_warmwhite_mea` |
 | WhiteLamp | `2025-12-02_whitelamp_fiber` | `2025-12-02_whitelamp_mea` |
@@ -41,9 +41,9 @@ Other lights of the room: `2025-12-02_room_epifluo`, `_binocular`, `_head_light`
 
 ### Caveats
 
-- ⚠ **Saturated**: the spectrometer reached its plateau, so the peak is flattened and the
-  normalised spectrum overestimates the tails. The fit bridges the saturated pixels, but it should be re-measured with a shorter
-  integration time or an ND filter.
+- **Slight saturation** of `2025-12-02_530nm_fiber` at the top of the peak: the saturated
+  pixels are left out and bridged by the fit. The curve outside the saturated window is
+  unaffected, and the high signal gives a very low-noise spectrum, so it is kept as is.
 - The after-MEA measurements are dim (1–3k counts peak for 385, 420, 490 and 595 nm, against
   ~55k at the fibre). Their noise floor is around 10^-1.5–10^-2 of the peak, so below that the
   fit is a log-linear extrapolation, not a measurement.

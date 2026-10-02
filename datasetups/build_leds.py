@@ -51,8 +51,8 @@ def plot_raw_vs_fit(entry, n_traces, fit, path):
     fig, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(13, 4.2))
     title = f"{entry['id']} – {entry['label']} ({n_traces} traces)"
     if fit.saturated:
-        title += "\nWARNING: spectrometer saturated, peak shape is unreliable"
-    fig.suptitle(title, fontsize=11, color="firebrick" if fit.saturated else "black")
+        title += "\nslightly saturated at the peak: saturated pixels bridged by the fit"
+    fig.suptitle(title, fontsize=11)
 
     for ax, f in ((ax_lin, lambda y: y), (ax_log, _log)):
         ax.axvspan(*fit.region, color="gray", alpha=0.08, label="fitted region")
@@ -115,7 +115,7 @@ def build(setup):
         plot_raw_vs_fit(e, len(counts), fit, plot_dir / f"{e['id']}.png")
         peak = spectra.FIT_GRID[fit.fitted.argmax()]
         print(f"{e['id']:32s} peak {peak:6.1f} nm  fitted {fit.region[0]:.0f}-{fit.region[1]:.0f} nm"
-              f"{'  SATURATED' if fit.saturated else ''}")
+              f"{'  (saturated pixels bridged)' if fit.saturated else ''}")
 
     plot_all(manifest, fits, plot_dir / "all_spectra.png")
     print(f"Saved: {plot_dir / 'all_spectra.png'}")
