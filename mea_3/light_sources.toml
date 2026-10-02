@@ -1,6 +1,7 @@
 # MEA3 light sources and their measured spectra.
 #
 # [[source]]    one per light source: name, LED model and serial number (Thorlabs).
+#               LEDs are named after the peak wavelength given by their model name.
 #               Before the optic fibre, the LEDs go through a series of filters
 #               (to be documented).
 # [[spectrum]]  one per measured spectrum. Raw traces in spectra/raw/<id>/, fitted
@@ -15,31 +16,31 @@ setup = "MEA3"
 # --- Light sources -----------------------------------------------------------
 
 [[source]]
-name = "Violet"
+name = "385nm"
 model = "M385L3"
 serial = "M00797533"
 color = "darkviolet"
 
 [[source]]
-name = "Blue"
+name = "420nm"
 model = "M420L3"
 serial = "M00428321"
 color = "royalblue"
 
 [[source]]
-name = "Green"
+name = "490nm"
 model = "M490L4"
 serial = "M00799946"
 color = "green"
 
 [[source]]
-name = "Yellow"
+name = "530nm"
 model = "M530L4"
 serial = "M00798695"
 color = "goldenrod"
 
 [[source]]
-name = "Red"
+name = "595nm"
 model = "M595L4"
 serial = "M01276863"
 color = "red"
@@ -73,28 +74,28 @@ color = "black"
 # --- Spectra -----------------------------------------------------------------
 
 [[spectrum]]
-id = "2025-12-02_violet_fiber"
-source = "Violet"
+id = "2025-12-02_385nm_fiber"
+source = "385nm"
 position = "fiber"
 
 [[spectrum]]
-id = "2025-12-02_blue_fiber"
-source = "Blue"
+id = "2025-12-02_420nm_fiber"
+source = "420nm"
 position = "fiber"
 
 [[spectrum]]
-id = "2025-12-02_green_fiber"
-source = "Green"
+id = "2025-12-02_490nm_fiber"
+source = "490nm"
 position = "fiber"
 
 [[spectrum]]
-id = "2025-12-02_yellow_fiber"
-source = "Yellow"
+id = "2025-12-02_530nm_fiber"
+source = "530nm"
 position = "fiber"
 
 [[spectrum]]
-id = "2025-12-02_red_fiber"
-source = "Red"
+id = "2025-12-02_595nm_fiber"
+source = "595nm"
 position = "fiber"
 
 [[spectrum]]
@@ -108,28 +109,28 @@ source = "WhiteLamp"
 position = "fiber"
 
 [[spectrum]]
-id = "2025-12-02_violet_mea"
-source = "Violet"
+id = "2025-12-02_385nm_mea"
+source = "385nm"
 position = "mea"
 
 [[spectrum]]
-id = "2025-12-02_blue_mea"
-source = "Blue"
+id = "2025-12-02_420nm_mea"
+source = "420nm"
 position = "mea"
 
 [[spectrum]]
-id = "2025-12-02_green_mea"
-source = "Green"
+id = "2025-12-02_490nm_mea"
+source = "490nm"
 position = "mea"
 
 [[spectrum]]
-id = "2025-12-02_yellow_mea"
-source = "Yellow"
+id = "2025-12-02_530nm_mea"
+source = "530nm"
 position = "mea"
 
 [[spectrum]]
-id = "2025-12-02_red_mea"
-source = "Red"
+id = "2025-12-02_595nm_mea"
+source = "595nm"
 position = "mea"
 
 [[spectrum]]

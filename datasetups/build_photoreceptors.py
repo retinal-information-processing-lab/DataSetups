@@ -10,8 +10,8 @@ Washington, from their public GitHub repository) and writes
   photoreceptors/spectra/lambda_max.csv     fitted λmax of every template
   photoreceptors/plots/all_photoreceptors.png
 
-Rods, Mcones and Scones are replaced by a Govardovskii A1 template whose λmax is fitted
-on the α-band (λ ≥ 400 nm) of the original data. Mela and RedOpsin are kept as the
+Rods, Mcones, Scones and Mela are replaced by a Govardovskii A1 template whose λmax is fitted
+on the α-band (λ ≥ 400 nm) of the original data. RedOpsin is kept as the
 original data.
 
 Template reference: Govardovskii et al. (2000), Visual Neuroscience 17, 509-528.
@@ -31,8 +31,8 @@ SOURCE_DIR = PR_DIR / "source"
 OUT_DIR    = PR_DIR / "spectra"
 PLOT_DIR   = PR_DIR / "plots"
 
-FITTED_OPSINS = ("Rods", "Mcones", "Scones")
-KEPT_OPSINS   = ("Mela", "RedOpsin")
+FITTED_OPSINS = ("Rods", "Mcones", "Scones", "Mela")
+KEPT_OPSINS   = ("RedOpsin",)
 COLORS = {"Rods": "black", "Mcones": "green", "Scones": "royalblue",
           "Mela": "purple", "RedOpsin": "red"}
 
@@ -92,7 +92,7 @@ def _log(y):
 
 def plot_used(lam, used):
     fig, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(14, 4.5))
-    fig.suptitle("Photoreceptor spectra used for the OSS theoretical surfaces", fontsize=13)
+    fig.suptitle("Mouse photoreceptor spectra", fontsize=13)
     for name, spec in used.items():
         ax_lin.plot(lam, spec, color=COLORS[name], lw=2, label=name)
         ax_log.plot(lam, _log(spec), color=COLORS[name], lw=2, label=name)
