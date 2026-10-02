@@ -1,151 +1,163 @@
-# MEA3 light-source spectra.
-# One [[spectrum]] per measured spectrum. Raw traces live in spectra/raw/<id>/,
-# the fitted power-meter file in spectra/powermeter/<id>.csv, the plot in plots/<id>.png.
+# MEA3 light sources and their measured spectra.
 #
-# position:
-#   fiber   – measured at the output of the optic fibre
-#   mea     – measured after the MEA (the MEA filters out part of the UV)
-#   unknown – measurement position still to be documented
-#   room    – other lights of the room, not part of the stimulation path
+# [[source]]    one per light source: name, LED model and serial number (Thorlabs).
+#               Before the optic fibre, the LEDs go through a series of filters
+#               (to be documented).
+# [[spectrum]]  one per measured spectrum. Raw traces in spectra/raw/<id>/, fitted
+#               power-meter file in spectra/powermeter/<id>.csv, plot in plots/<id>.png.
+#   position:
+#     fiber – measured at the output of the optic fibre
+#     mea   – measured after the MEA (the MEA filters out part of the UV)
+#     room  – other lights of the room, not part of the stimulation path
 
 setup = "MEA3"
 
-# --- 2025-12-02 calibration, at the fibre output -----------------------------
+# --- Light sources -----------------------------------------------------------
 
-[[spectrum]]
-id = "2025-12-02_385nm_fiber"
-source = "Violet LED 385 nm"
-position = "fiber"
+[[source]]
+name = "Violet"
+model = "M385L3"
+serial = "M00797533"
 color = "darkviolet"
 
-[[spectrum]]
-id = "2025-12-02_415nm_fiber"
-source = "Blue LED 415 nm"
-position = "fiber"
+[[source]]
+name = "Blue"
+model = "M420L3"
+serial = "M00428321"
 color = "royalblue"
 
-[[spectrum]]
-id = "2025-12-02_490nm_fiber"
-source = "Green LED 490 nm"
-position = "fiber"
+[[source]]
+name = "Green"
+model = "M490L4"
+serial = "M00799946"
 color = "green"
 
-[[spectrum]]
-id = "2025-12-02_530nm_fiber"
-source = "Yellow LED 530 nm"
-position = "fiber"
+[[source]]
+name = "Yellow"
+model = "M530L4"
+serial = "M00798695"
 color = "goldenrod"
 
-[[spectrum]]
-id = "2025-12-02_595nm_fiber"
-source = "Amber LED 595 nm"
-position = "fiber"
-color = "darkorange"
+[[source]]
+name = "Red"
+model = "M595L4"
+serial = "M01276863"
+color = "red"
+
+[[source]]
+name = "WarmWhite"
+model = "MWWHLP2"
+serial = "M01277752"
+color = "peru"
+
+[[source]]
+name = "WhiteLamp"
+color = "gray"
+
+[[source]]
+name = "Epifluo Lamp"
+color = "teal"
+
+[[source]]
+name = "RedBinocular"
+color = "saddlebrown"
+
+[[source]]
+name = "Headlight"
+color = "firebrick"
+
+[[source]]
+name = "MicroscopeRed"
+color = "black"
+
+# --- Spectra -----------------------------------------------------------------
 
 [[spectrum]]
-id = "2025-12-02_617nm_fiber"
-source = "Red LED 617 nm"
+id = "2025-12-02_violet_fiber"
+source = "Violet"
 position = "fiber"
-color = "red"
+
+[[spectrum]]
+id = "2025-12-02_blue_fiber"
+source = "Blue"
+position = "fiber"
+
+[[spectrum]]
+id = "2025-12-02_green_fiber"
+source = "Green"
+position = "fiber"
+
+[[spectrum]]
+id = "2025-12-02_yellow_fiber"
+source = "Yellow"
+position = "fiber"
+
+[[spectrum]]
+id = "2025-12-02_red_fiber"
+source = "Red"
+position = "fiber"
 
 [[spectrum]]
 id = "2025-12-02_warmwhite_fiber"
-source = "Warm white LED"
+source = "WarmWhite"
 position = "fiber"
-color = "peru"
 
 [[spectrum]]
 id = "2025-12-02_whitelamp_fiber"
-source = "White lamp"
+source = "WhiteLamp"
 position = "fiber"
-color = "gray"
-
-# --- 2025-12-02 calibration, after the MEA -----------------------------------
 
 [[spectrum]]
-id = "2025-12-02_385nm_mea"
-source = "Violet LED 385 nm"
+id = "2025-12-02_violet_mea"
+source = "Violet"
 position = "mea"
-color = "darkviolet"
 
 [[spectrum]]
-id = "2025-12-02_415nm_mea"
-source = "Blue LED 415 nm"
+id = "2025-12-02_blue_mea"
+source = "Blue"
 position = "mea"
-color = "royalblue"
 
 [[spectrum]]
-id = "2025-12-02_490nm_mea"
-source = "Green LED 490 nm"
+id = "2025-12-02_green_mea"
+source = "Green"
 position = "mea"
-color = "green"
 
 [[spectrum]]
-id = "2025-12-02_530nm_mea"
-source = "Yellow LED 530 nm"
+id = "2025-12-02_yellow_mea"
+source = "Yellow"
 position = "mea"
-color = "goldenrod"
 
 [[spectrum]]
-id = "2025-12-02_595nm_mea"
-source = "Amber LED 595 nm"
+id = "2025-12-02_red_mea"
+source = "Red"
 position = "mea"
-color = "darkorange"
-
-[[spectrum]]
-id = "2025-12-02_617nm_mea"
-source = "Red LED 617 nm"
-position = "mea"
-color = "red"
 
 [[spectrum]]
 id = "2025-12-02_warmwhite_mea"
-source = "Warm white LED"
+source = "WarmWhite"
 position = "mea"
-color = "peru"
 
 [[spectrum]]
 id = "2025-12-02_whitelamp_mea"
-source = "White lamp"
+source = "WhiteLamp"
 position = "mea"
-color = "gray"
-
-# --- Current filtered configurations -----------------------------------------
-
-[[spectrum]]
-id = "2025-12-08_595nm_DM605_F600"
-source = "Amber LED 595 nm + dichroic DM605 + filter F600 (current red channel)"
-position = "unknown"
-color = "red"
-
-[[spectrum]]
-id = "2026-01-14_530nm_DM605"
-source = "Yellow LED 530 nm + dichroic DM605 (current yellow channel)"
-position = "unknown"
-color = "goldenrod"
-
-# --- Other lights of the room (2025-12-02) -----------------------------------
-
-[[spectrum]]
-id = "2025-12-02_room_binocular"
-source = "Binocular light"
-position = "room"
-color = "saddlebrown"
 
 [[spectrum]]
 id = "2025-12-02_room_epifluo"
-source = "Epifluorescence lamp"
+source = "Epifluo Lamp"
 position = "room"
-color = "teal"
+
+[[spectrum]]
+id = "2025-12-02_room_binocular"
+source = "RedBinocular"
+position = "room"
 
 [[spectrum]]
 id = "2025-12-02_room_head_light"
-source = "Head light"
+source = "Headlight"
 position = "room"
-color = "firebrick"
 
 [[spectrum]]
 id = "2025-12-02_room_microscope"
-source = "Microscope light"
+source = "MicroscopeRed"
 position = "room"
-color = "black"

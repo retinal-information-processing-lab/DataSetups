@@ -26,15 +26,21 @@ REPO = Path(__file__).resolve().parent.parent
 POSITION_TITLES = {
     "fiber":   "After the optic fibre",
     "mea":     "After the MEA",
-    "unknown": "Current filtered channels (position to document)",
     "room":    "Other lights of the room",
 }
 LOG_YLIM = (-4, 0.1)
 
 
 def load_manifest(setup_dir):
+    """Manifest with every spectrum completed by its source (model, serial, color)."""
     with open(setup_dir / "light_sources.toml", "rb") as f:
-        return tomllib.load(f)
+        manifest = tomllib.load(f)
+    sources = {s["name"]: s for s in manifest["source"]}
+    for e in manifest["spectrum"]:
+        src = sources[e["source"]]
+        e["color"] = src["color"]
+        e["label"] = " ".join(str(src[k]) for k in ("name", "model", "serial") if k in src)
+    return manifest
 
 
 def _log(y):
@@ -46,7 +52,7 @@ def plot_raw_vs_fit(entry, wl, counts, fitted, saturated, path):
     raw_mean = raw_mean / raw_mean.max()
 
     fig, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(13, 4.2))
-    title = f"{entry['id']} – {entry['source']} ({len(counts)} traces)"
+    title = f"{entry['id']} – {entry['label']} ({len(counts)} traces)"
     if saturated:
         title += "\nWARNING: spectrometer saturated, peak shape is unreliable"
     fig.suptitle(title, fontsize=11, color="firebrick" if saturated else "black")

@@ -4,51 +4,48 @@
 
 ## Light sources
 
-A detailed description of each light source (LED references, drivers, filters, dichroics,
-light path) is still to be written.
+Listed in [`light_sources.toml`](light_sources.toml).
+
+| Name | LED | Serial number |
+|---|---|---|
+| Violet | M385L3 | M00797533 |
+| Blue | M420L3 | M00428321 |
+| Green | M490L4 | M00799946 |
+| Yellow | M530L4 | M00798695 |
+| Red | M595L4 | M01276863 |
+| WarmWhite | MWWHLP2 | M01277752 |
+| WhiteLamp | | |
+| Epifluo Lamp | | |
+| RedBinocular | | |
+| Headlight | | |
+| MicroscopeRed | | |
+
+Before the optic fibre, the LEDs go through a series of filters (to be documented).
 
 ## Spectra
 
-Newest measurement available for each light source. Raw traces are in `spectra/raw/<id>/`,
-power-meter files in `spectra/powermeter/<id>.csv`, plots in `plots/<id>.png`.
+Raw traces are in `spectra/raw/<id>/`, power-meter files in `spectra/powermeter/<id>.csv` and
+plots in `plots/<id>.png`.
 
 | Source | After the optic fibre | After the MEA |
 |---|---|---|
-| Violet LED 385 nm | `2025-12-02_385nm_fiber` | `2025-12-02_385nm_mea` |
-| Blue LED 415 nm | `2025-12-02_415nm_fiber` | `2025-12-02_415nm_mea` |
-| Green LED 490 nm | `2025-12-02_490nm_fiber` | `2025-12-02_490nm_mea` |
-| Yellow LED 530 nm | `2025-12-02_530nm_fiber` ⚠ saturated | `2025-12-02_530nm_mea` |
-| Amber LED 595 nm | `2025-12-02_595nm_fiber` | `2025-12-02_595nm_mea` |
-| Red LED 617 nm | `2025-12-02_617nm_fiber` | `2025-12-02_617nm_mea` ⚠ saturated |
-| Warm white LED | `2025-12-02_warmwhite_fiber` | `2025-12-02_warmwhite_mea` |
-| White lamp | `2025-12-02_whitelamp_fiber` | `2025-12-02_whitelamp_mea` |
+| Violet | `2025-12-02_violet_fiber` | `2025-12-02_violet_mea` |
+| Blue | `2025-12-02_blue_fiber` | `2025-12-02_blue_mea` |
+| Green | `2025-12-02_green_fiber` | `2025-12-02_green_mea` |
+| Yellow | `2025-12-02_yellow_fiber` ⚠ saturated | `2025-12-02_yellow_mea` |
+| Red | `2025-12-02_red_fiber` | `2025-12-02_red_mea` |
+| WarmWhite | `2025-12-02_warmwhite_fiber` | `2025-12-02_warmwhite_mea` |
+| WhiteLamp | `2025-12-02_whitelamp_fiber` | `2025-12-02_whitelamp_mea` |
 
-Current filtered channels (measurement position still to be documented):
-
-| Channel | Spectrum |
-|---|---|
-| Red: 595 nm LED + dichroic DM605 + filter F600 | `2025-12-08_595nm_DM605_F600` |
-| Yellow: 530 nm LED + dichroic DM605 | `2026-01-14_530nm_DM605` |
-
-Other lights of the room (2025-12-02): `2025-12-02_room_binocular`, `_epifluo`,
-`_head_light`, `_microscope`.
+Other lights of the room: `2025-12-02_room_epifluo`, `_binocular`, `_head_light`, `_microscope`.
 
 ### Caveats
 
 - ⚠ **Saturated**: the spectrometer reached its plateau, so the peak is flattened and the
-  normalised spectrum overestimates the tails. These two spectra should be re-measured with
-  a shorter integration time or an ND filter.
-- The after-MEA measurements are dim (1–3k counts peak for 385/415/490/595 nm against ~55k at
-  the fibre). The 150-count noise threshold therefore cuts them at about 5–10 % of the peak,
-  so their tails are lost.
-- The spectrometer clock is wrong (files are dated 2010). The dates come from the folder
-  names of the original measurements.
-
-## Spectra used for the OSS theoretical surfaces
-
-`spectra/oss_surfaces_2026/` holds the exact LED spectra (0.5 nm, 350–700 nm, smoothed) used
-in `OSS_Theoretical/surfaces.py` (`IlluminationData_ModifiedRed_smoothed.pkl`):
-
-- **Red** is `2025-12-08_595nm_DM605_F600`, fitted with the same pipeline as here.
-- **Violet, Blue, Green, Yellow** are older curves from `IlluminationData.pkl` (2022), *not*
-  the 2025-12-02 measurements above.
+  normalised spectrum overestimates the tails. It should be re-measured with a shorter
+  integration time or an ND filter.
+- The after-MEA measurements are dim (1–3k counts peak for violet, blue, green and red,
+  against ~55k at the fibre). The 150-count noise threshold therefore cuts them at about
+  5–10 % of the peak, so their tails are lost.
+- The spectrometer clock is wrong (files are dated 2010). The dates come from the folder names
+  of the original measurements.

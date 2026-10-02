@@ -7,8 +7,8 @@ Mouse photoreceptor spectra: Govardovskii A1 templates fitted on the original da
 Reads photoreceptors/source/<PR>.csv (original data, Fred Rieke's lab, University of
 Washington, from their public GitHub repository) and writes
   photoreceptors/spectra/<PR>.csv           spectra used for the OSS theoretical surfaces
-  photoreceptors/spectra/lambda_max.csv     λmax of every template
-  photoreceptors/plots/*.png                original vs Govardovskii templates
+  photoreceptors/spectra/lambda_max.csv     fitted λmax of every template
+  photoreceptors/plots/all_photoreceptors.png
 
 Rods, Mcones and Scones are replaced by a Govardovskii A1 template whose λmax is fitted
 on the α-band (λ ≥ 400 nm) of the original data. Mela and RedOpsin are kept as the
@@ -36,7 +36,6 @@ KEPT_OPSINS   = ("Mela", "RedOpsin")
 COLORS = {"Rods": "black", "Mcones": "green", "Scones": "royalblue",
           "Mela": "purple", "RedOpsin": "red"}
 
-LMAX_LITERATURE = {"Rods": 501.0, "Mcones": 509.0, "Scones": 360.0}
 FIT_MIN_NM = 400
 HEADER = "wavelength_nm,sensitivity"
 
@@ -91,33 +90,6 @@ def _log(y):
     return np.log10(np.clip(y, 1e-6, None))
 
 
-def plot_comparison(lam, original, literature, fitted, lmax_fit):
-    fig, axes = plt.subplots(len(FITTED_OPSINS), 2, figsize=(14, 11))
-    fig.suptitle("Mouse photoreceptors – original data vs Govardovskii A1 templates", fontsize=13)
-    versions = [
-        ("Original data",           original,   "-",  "steelblue",  None),
-        ("Govardovskii literature", literature, "--", "darkorange", LMAX_LITERATURE),
-        ("Govardovskii fitted (used)", fitted,  "--", "crimson",    lmax_fit),
-    ]
-    for row, name in zip(axes, FITTED_OPSINS):
-        for ax, f, scale in ((row[0], lambda y: y, "linear"), (row[1], _log, "log")):
-            for label, spectra, ls, color, lmax in versions:
-                lm = f"  λmax={lmax[name]:.1f} nm" if lmax else ""
-                ax.plot(lam, f(spectra[name]), color=color, lw=2, ls=ls, label=f"{label}{lm}")
-            ax.set_title(f"{name} – {scale} scale", fontsize=11)
-            ax.set_xlim(lam[0], lam[-1])
-            ax.grid(True, alpha=0.3)
-            ax.legend(fontsize=8, loc="upper right")
-        row[0].set_ylabel("Normalised sensitivity")
-        row[1].set_ylabel("log₁₀")
-        row[1].set_ylim(-4, 0.1)
-    for ax in axes[-1]:
-        ax.set_xlabel("Wavelength (nm)")
-    fig.tight_layout()
-    fig.savefig(PLOT_DIR / "templates_vs_original.png", dpi=130)
-    plt.close(fig)
-
-
 def plot_used(lam, used):
     fig, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(14, 4.5))
     fig.suptitle("Photoreceptor spectra used for the OSS theoretical surfaces", fontsize=13)
@@ -149,20 +121,17 @@ def build():
 
     lmax_fit   = {name: fit_lmax(lam, original[name]) for name in FITTED_OPSINS}
     fitted     = {name: govardovskii_A1(lam, lmax_fit[name]) for name in FITTED_OPSINS}
-    literature = {name: govardovskii_A1(lam, LMAX_LITERATURE[name]) for name in FITTED_OPSINS}
 
     used = {**fitted, **{name: original[name] for name in KEPT_OPSINS}}
     for name, spec in used.items():
         write_csv(OUT_DIR / f"{name}.csv", lam, spec)
 
     with open(OUT_DIR / "lambda_max.csv", "w") as f:
-        f.write("photoreceptor,lambda_max_fitted_nm,lambda_max_literature_nm,data_peak_nm\n")
+        f.write("photoreceptor,lambda_max_nm\n")
         for name in FITTED_OPSINS:
-            f.write(f"{name},{lmax_fit[name]:.4f},{LMAX_LITERATURE[name]:.1f},"
-                    f"{lam[original[name].argmax()]:.1f}\n")
+            f.write(f"{name},{lmax_fit[name]:.4f}\n")
             print(f"{name:8s} fitted λmax = {lmax_fit[name]:.2f} nm")
 
-    plot_comparison(lam, original, literature, fitted, lmax_fit)
     plot_used(lam, used)
     print(f"Saved: {OUT_DIR}, {PLOT_DIR}")
 

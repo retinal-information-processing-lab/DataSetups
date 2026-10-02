@@ -1,4 +1,4 @@
-photoreceptor,lambda_max_fitted_nm,lambda_max_literature_nm,data_peak_nm
-Rods,493.6083,501.0,493.0
-Mcones,511.1182,509.0,511.0
-Scones,364.2335,360.0,360.0
+photoreceptor,lambda_max_nm
+Rods,493.6083
+Mcones,511.1182
+Scones,364.2335

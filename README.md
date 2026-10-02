@@ -8,7 +8,7 @@ and other setup details.
 
 ```
 mea_1/ … mea_4/            one folder per MEA setup
-  light_sources.toml       list of the measured spectra (id, source, measurement position)
+  light_sources.toml       light sources (LED model, serial number) and measured spectra
   spectra/raw/<id>/        raw spectrometer traces (Ocean Optics .txt exports)
   spectra/powermeter/<id>.csv   fitted spectrum, one file per spectrum, to load in the power meter
   plots/<id>.png           raw mean vs fitted spectrum
@@ -30,8 +30,7 @@ fibre output and the `_mea` spectrum when it is measured after the MEA.
 
 ## Rebuilding
 
-Every CSV and plot is generated from the raw traces. Run `./DataSetups.sh` (Linux),
-`DataSetups.bat` (Windows) or:
+Every CSV and plot is generated from the raw traces:
 
 ```bash
 conda env create -f environment.yml     # first time only

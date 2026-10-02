@@ -1,7 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=DataSetups
-Comment=Rebuild the fitted spectra and plots of the setups
-Exec=bash -c 'cd "$(dirname "$0")" && ./DataSetups.sh; read -p "Done, press Enter"' %k
-Terminal=true
-Categories=Science;
