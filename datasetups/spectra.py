@@ -29,7 +29,7 @@ FIT_GRID        = np.arange(350, 850.5, 0.5)  # 0.5 nm, as the OSS IlluminationD
 
 INTENSITY_FLOOR = 1e-7
 LOG_FLOOR       = INTENSITY_FLOOR / 10
-PRE_SMOOTH_WINDOW = 11           # points on the 0.5 nm grid (5 nm), light smoothing of the peak
+PRE_SMOOTH_WINDOW = 21           # points on the 0.5 nm grid (10 nm), light smoothing of the peak
 SATURATION      = 60000           # counts: plateau of the USB2000+ after dark correction
 
 
