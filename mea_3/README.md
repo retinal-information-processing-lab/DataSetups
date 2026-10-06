@@ -48,5 +48,8 @@ Other lights of the room: `room_epifluo`, `_binocular`, `_head_light`, `_microsc
 - The after-MEA measurements are dim (1–3k counts peak for 385, 420, 490 and 595 nm, against
   ~55k at the fibre). Their noise floor is around 10^-1.5–10^-2 of the peak, so below that the
   fit is a log-linear extrapolation, not a measurement.
+- The white lamp is a fluorescent lamp with narrow mercury lines (405, 436, 546, 577/579 nm).
+  Its two spectra are fitted as line sources (`line_source = true`), so the lines keep their
+  height.
 - The spectrometer clock is wrong (files are dated 2010). The dates come from the folder names
   of the original measurements.

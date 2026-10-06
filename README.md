@@ -79,6 +79,10 @@ For each spectrum (`datasetups/spectra.py`), the fit is done in log space on the
    one decade per 20 nm).
 5. **Export**: normalised to 1 at the peak, values below 1e-5 set to 0, 1 nm grid.
 
+Spectra with narrow emission lines (fluorescent white lamp) are marked `line_source = true` in
+`light_sources.toml`: they are fitted without the 2.5 nm running average and without capping
+the weights, so the lines are not flattened.
+
 ### Adding a setup or a measurement
 
 Copy the raw traces to `mea_N/raw_data/<source>_<position>/`, add a `[[spectrum]]` (with its `date`)

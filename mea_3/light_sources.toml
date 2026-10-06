@@ -11,6 +11,8 @@
 #     fiber – measured at the output of the optic fibre
 #     mea   – measured after the MEA (the MEA filters out part of the UV)
 #     room  – other lights of the room, not part of the stimulation path
+#   line_source = true: narrow emission lines (fluorescent lamp); fitted without the
+#     2.5 nm running average and without capping the weights, so the lines are kept.
 
 setup = "MEA3"
 
@@ -116,6 +118,7 @@ id = "whitelamp_fiber"
 date = 2025-12-02
 source = "WhiteLamp"
 position = "fiber"
+line_source = true
 
 [[spectrum]]
 id = "385nm_mea"
@@ -158,6 +161,7 @@ id = "whitelamp_mea"
 date = 2025-12-02
 source = "WhiteLamp"
 position = "mea"
+line_source = true
 
 [[spectrum]]
 id = "room_epifluo"

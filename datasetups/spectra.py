@@ -10,6 +10,9 @@ For one folder of repeated spectrometer traces:
                 log10 of the signal inside the region, weighted by SNR² with the SNR capped
                 at SNR_CAP so that the peak does not outweigh the tails. Saturated pixels
                 are left out, so the spline bridges a flattened peak.
+                For line sources (narrow emission lines, e.g. a fluorescent lamp), the
+                running average is skipped and the weights are not capped, so the spline
+                follows the lines.
   4. tails    – outside the region, log-linear continuation of the fit with the slope of
                 its last TAIL_NM, decaying by at least MIN_TAIL_SLOPE.
   5. export   – normalised to 1 at peak, values below FLOOR set to 0, resampled on a
@@ -101,8 +104,10 @@ def _signal_region(y, noise_bin, exclude):
     return lo, hi
 
 
-def fit(wl, counts):
+def fit(wl, counts, line_source=False):
     """Fit the spectrum of a stack of traces. See module docstring."""
+    presmooth_nm = 0 if line_source else PRESMOOTH_NM
+    snr_cap = np.inf if line_source else SNR_CAP
     saturated_px = (counts >= SATURATION).any(axis=0)
     mean = counts.mean(axis=0)
     base, noise = baseline_and_noise(mean)
@@ -112,12 +117,12 @@ def fit(wl, counts):
     noise_bin = noise / np.sqrt(n_px)
 
     lo, hi = _signal_region(y, noise_bin, saturated)
-    y_smooth = uniform_filter1d(y, int(PRESMOOTH_NM / STEP) + 1)
+    y_smooth = uniform_filter1d(y, int(presmooth_nm / STEP) + 1)
     use = np.zeros(len(y), bool)
     use[lo:hi + 1] = True
     use &= (y_smooth > 0) & ~saturated
 
-    weights = np.minimum(y_smooth[use] / noise_bin[use], SNR_CAP) ** 2
+    weights = np.minimum(y_smooth[use] / noise_bin[use], snr_cap) ** 2
     spline = make_smoothing_spline(FIT_GRID[use], np.log10(y_smooth[use]),
                                    w=weights / weights.mean())
 

@@ -115,7 +115,7 @@ def build(setup):
     fits = {}
     for e in manifest["spectrum"]:
         wl, counts = spectra.read_traces(setup_dir / "raw_data" / e["id"])
-        fit = spectra.fit(wl, counts)
+        fit = spectra.fit(wl, counts, line_source=e.get("line_source", False))
         fits[e["id"]] = fit.fitted
 
         spectra.write_powermeter_csv(csv_dir / f"{e['id']}.csv", spectra.to_powermeter(fit.fitted))
