@@ -50,6 +50,7 @@ color = "red"
 name = "WarmWhite"
 model = "MWWHLP2"
 serial = "M01277752"
+note = "measured through the dichroic DM605"
 color = "peru"
 
 [[source]]

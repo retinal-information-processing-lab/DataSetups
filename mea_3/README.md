@@ -13,7 +13,7 @@ Listed in [`light_sources.toml`](light_sources.toml).
 | 490nm | M490L4 | M00799946 |
 | 530nm | M530L4 | M00798695 |
 | 595nm | M595L4 | M01276863 |
-| WarmWhite | MWWHLP2 | M01277752 |
+| WarmWhite (through dichroic DM605) | MWWHLP2 | M01277752 |
 | WhiteLamp | | |
 | Epifluo Lamp | | |
 | RedBinocular | | |

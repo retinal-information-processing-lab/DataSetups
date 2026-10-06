@@ -35,6 +35,7 @@ color = "goldenrod"
 [[source]]
 name = "625nm"
 color = "red"
+note = "red LED through a filter (to be replaced by the MEA3 red)"
 
 [[source]]
 name = "WarmWhite"

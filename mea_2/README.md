@@ -26,9 +26,9 @@ The after-MEA spectra are Awen's "filtered" violet and yellow measurements.
 
 Other lights of the room: `room_binocular`, `room_dissection_lamp`, `room_head_lamp`.
 
-### To check
+### Notes
 
-- `625nm_fiber` is only ~2 nm wide, peaking at 633 nm: this is not the spectrum of a 625 nm
-  LED (~15–20 nm wide) but looks like a laser (HeNe, 632.8 nm) or a very narrow filter.
-- `warmwhite_fiber` has a strong blue pump peak at 445 nm (60 % of the maximum), more like a
-  cool or neutral white LED than a warm white.
+- `625nm_fiber` is the red LED through a narrow filter (~2 nm wide at 633 nm). This red will
+  be replaced by the one used on MEA3.
+- `warmwhite_fiber` is the bare warm-white LED. On MEA3 the warm white is measured through
+  the dichroic DM605, which removes its blue peak.
