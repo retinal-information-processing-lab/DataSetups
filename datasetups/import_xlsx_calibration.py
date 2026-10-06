@@ -3,7 +3,7 @@
 One-time import of the Excel calibration files of Isomerisation_to_voltage into calibration
 folders (see datasetups/calibration.py).
 
-    python -m datasetups.import_xlsx_calibration mea_2 path/to/calibration.xlsx path/to/last_correction.txt
+    python -m datasetups.import_xlsx_calibration mea_2 path/to/calibration.xlsx
 
 Each dated sheet becomes calibration/<YYYY-MM-DD>/ (one <channel>.csv per LED + notes.txt). Rows are found
 by their label in column A, columns by their header (row 1), never by cell position:
@@ -13,13 +13,11 @@ by their label in column A, columns by their header (row 1), never by cell posit
   "Indirect w/ filter …" power at the fibre at 5 V through that ND filter, kept as a note
 A column identical to an earlier column of the same sheet, or to the same channel in the
 same channel in an earlier session, is a copy, not a measurement: it is skipped and noted in notes.txt.
-The values of last_correction.txt go to calibration/corrections.csv.
 """
 
 import argparse
 import csv
 import datetime as dt
-import re
 from pathlib import Path
 
 import numpy as np
@@ -41,13 +39,6 @@ CHANNELS = {
               "blue (415)": "420nm", "blue": "420nm", "415": "420nm",
               "violet (385)": "385nm", "violet": "385nm", "385": "385nm",
               "530xdm605": "530nm_DM605", "595xdm605xf600": "595nm_DM605_F600"},
-}
-# Channel names used in last_correction.txt
-CORRECTION_NAMES = {
-    "mea_2": {"Red": "625nm", "Yellow": "530nm", "Green": "490nm", "Blue": "415nm",
-              "Violet": "385nm"},
-    "mea_3": {"385": "385nm", "415": "420nm", "490": "490nm", "530xDM605": "530nm_DM605",
-              "595xDM605xF600": "595nm_DM605_F600"},
 }
 # Sheet → (date, notes) for sheets whose meaning is not in the sheet itself
 EXTRA = {
@@ -156,20 +147,7 @@ def write_session(setup, folder, date, sheet_name, xlsx_name, controls, channels
     (folder / "notes.txt").write_text("\n".join(lines) + "\n")
 
 
-def import_corrections(setup, txt):
-    text = Path(txt).read_text()
-    corrections = {CORRECTION_NAMES[setup][name]: float(value)
-                   for name, value in re.findall(r"([\w\d_-]+) LED:\s+([\d.]+|None)", text)
-                   if name in CORRECTION_NAMES[setup] and value != "None"}
-    with open(REPO / setup / "calibration" / "corrections.csv", "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["channel", "fiber_mW"])
-        for name in sorted(corrections):
-            w.writerow([name, f"{corrections[name]:g}"])
-    return corrections
-
-
-def import_xlsx(setup, xlsx, txt):
+def import_xlsx(setup, xlsx):
     wb = openpyxl.load_workbook(xlsx, data_only=True)
     calib_dir = REPO / setup / "calibration"
     previous = {}                     # channel → [(power, mea_uW_cm2, session date), …]
@@ -194,17 +172,14 @@ def import_xlsx(setup, xlsx, txt):
                       extra_notes + notes)
         print(f"{setup} {sheet} -> {folder.name}: {position}, "
               f"{[c['name'] for c in kept]}" + (f"  ({len(notes)} skipped)" if notes else ""))
-    rows = import_corrections(setup, txt)
-    print(f"{setup}: {len(rows)} corrections")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("setup")
     parser.add_argument("xlsx")
-    parser.add_argument("last_correction")
     a = parser.parse_args()
-    import_xlsx(a.setup, a.xlsx, a.last_correction)
+    import_xlsx(a.setup, a.xlsx)
 
 
 if __name__ == "__main__":

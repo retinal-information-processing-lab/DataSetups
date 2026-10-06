@@ -17,19 +17,14 @@ Layout of <setup>/calibration/:
                               control_V,mea_uW_cm2.
   <YYYY-MM-DD>/notes.txt      details for humans (power meter, sensor, power-meter spectral
                               correction used, remarks); not read by the code
-  corrections.csv             current power at the optic fibre at the reference control, one
-                              row per channel: channel,fiber_mW
   current.csv                 generated: power at the MEA (µW/cm²) vs control per channel
   plots/                      generated: current.png (all channels) + <channel>.png
 
 The calibration curve is measured at the optic fibre with no ND filter, and the power at the
-MEA once at the reference control, which gives the fibre → MEA ratio. A correction is the fibre
-power measured again at the reference control in the current conditions (ND filters, drift): it
-rescales the whole curve, whose shape does not change. The power at the MEA is
+MEA once at the reference control, which gives the fibre → MEA ratio. The power at the MEA is
 
-    curve(control) × correction / curve(ref) × mea(ref) / curve(ref)
-
-as in PowerList_to_Voltage (Isomerisation_to_voltage). The newest dated folder is the current
+    curve(control) × mea(ref) / curve(ref)
+ The newest dated folder is the current
 calibration. The LED of a channel is the first part of its name (595nm_DM605_F600 → 595nm).
 """
 
@@ -45,8 +40,7 @@ import numpy as np
 
 REPO = Path(__file__).resolve().parent.parent
 
-# Factors to µW (power) or µW/cm² (power density), as written in the CSV headers
-POWER_UNITS   = {"W": 1e6, "mW": 1e3, "uW": 1.0, "nW": 1e-3}
+# Factors to µW/cm², as written in the CSV headers of curves measured at the MEA
 DENSITY_UNITS = {"W_cm2": 1e6, "mW_cm2": 1e3, "uW_cm2": 1.0, "nW_cm2": 1e-3}
 CONTROL_LABELS = {"pct": "%"}
 
@@ -98,39 +92,14 @@ def load_sessions(setup_dir):
     return [load_session(p) for p in folders]
 
 
-def load_corrections(setup_dir):
-    """Current fibre power at the reference control: {channel: power in mW}."""
-    path = setup_dir / "calibration" / "corrections.csv"
-    if not path.exists():
-        return {}
-    return {r["channel"]: float(r["fiber_mW"]) for r in csv.DictReader(open(path, newline=""))}
-
-
-def set_correction(setup, channel, fiber_mW):
-    """Store the fibre power (mW) measured at the reference control for one channel."""
-    corrections = load_corrections(REPO / setup)
-    corrections[channel] = fiber_mW
-    with open(REPO / setup / "calibration" / "corrections.csv", "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["channel", "fiber_mW"])
-        for name in sorted(corrections):
-            w.writerow([name, f"{corrections[name]:g}"])
-
-
 # %% Calibration
 
-def channel_calibration(ch, corrections):
-    """Power at the MEA (µW/cm²) vs control for one channel, and the correction factor
-    applied (None when there is no correction)."""
+def channel_calibration(ch):
+    """Power at the MEA (µW/cm²) vs control for one channel."""
     if ch["position"] == "mea":
-        return ch["control"], ch["power"] * DENSITY_UNITS[ch["power_unit"]], None
-
+        return ch["control"], ch["power"] * DENSITY_UNITS[ch["power_unit"]]
     curve_ref = np.interp(ch["reference_control"], ch["control"], ch["power"])
-    factor = None
-    if ch["name"] in corrections:
-        factor = corrections[ch["name"]] * POWER_UNITS["mW"] / (curve_ref * POWER_UNITS[ch["power_unit"]])
-    ratio = ch["mea_uW_cm2"] / curve_ref
-    return ch["control"], ch["power"] * (factor or 1.0) * ratio, factor
+    return ch["control"], ch["power"] * ch["mea_uW_cm2"] / curve_ref
 
 
 def current_channels(sessions):
@@ -140,18 +109,17 @@ def current_channels(sessions):
 
 # %% Outputs
 
-def write_current(setup_dir, sessions, corrections):
+def write_current(setup_dir, sessions):
     session, channels = current_channels(sessions)
     path = setup_dir / "calibration" / "current.csv"
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["channel", "control", "control_unit", "power_uW_cm2", "calibration",
-                    "correction_factor"])
+        w.writerow(["channel", "control", "control_unit", "power_uW_cm2", "calibration"])
         for ch in channels:
-            control, power, factor = channel_calibration(ch, corrections)
+            control, power = channel_calibration(ch)
             for c, p in zip(control, power):
                 w.writerow([ch["name"], f"{c:g}", _control_label(ch), f"{p:.6g}",
-                            session["folder"].name, f"{factor:.6g}" if factor else ""])
+                            session["folder"].name])
     return path
 
 
@@ -168,9 +136,9 @@ def _source_colors(setup_dir):
         return {src["name"]: src["color"] for src in tomllib.load(f).get("source", [])}
 
 
-def _draw_channel(ax, session, ch, corrections, color, title_size=11):
+def _draw_channel(ax, session, ch, color, title_size=11):
     """Calibration of one channel: measured points and the linear interpolation used."""
-    control, power, factor = channel_calibration(ch, corrections)
+    control, power = channel_calibration(ch)
     ax.plot(control, power, "-", color=color, lw=2, alpha=0.85)
     ax.plot(control, power, "o", color=color, ms=4.5, mec="white", mew=0.8, zorder=3)
     ax.set_title(ch["name"], fontsize=title_size, fontweight="bold", loc="left")
@@ -186,20 +154,14 @@ def _draw_channel(ax, session, ch, corrections, color, title_size=11):
     ref, unit = ch["reference_control"], _control_label(ch)
     info = [f"{np.interp(ref, control, power):.4g} µW/cm² at {ref:g} {unit}",
             f"calibration {session['folder'].name}"]
-    if ch["position"] == "fiber":
-        if factor:
-            info.append(f"correction: {corrections[ch['name']]:g} mW at {ref:g} {unit} "
-                        f"(×{factor:.3g})")
-        else:
-            info.append("no correction")
-    else:
+    if ch["position"] == "mea":
         info.append("curve measured at the MEA")
     ax.text(0.03, 0.97, "\n".join(info), transform=ax.transAxes, va="top", ha="left",
             fontsize=8.5, color="0.25",
             bbox=dict(boxstyle="round,pad=0.4", fc="white", ec="0.85", alpha=0.9))
 
 
-def plot_current(setup_dir, sessions, corrections, plot_dir):
+def plot_current(setup_dir, sessions, plot_dir):
     """One plot per channel, and current.png with every channel in its own panel."""
     session, channels = current_channels(sessions)
     colors = _source_colors(setup_dir)
@@ -207,7 +169,7 @@ def plot_current(setup_dir, sessions, corrections, plot_dir):
 
     for ch in channels:
         fig, ax = plt.subplots(figsize=(6.5, 4.5))
-        _draw_channel(ax, session, ch, corrections, color(ch), title_size=13)
+        _draw_channel(ax, session, ch, color(ch), title_size=13)
         fig.tight_layout()
         fig.savefig(plot_dir / f"{ch['name']}.png", dpi=130)
         plt.close(fig)
@@ -217,7 +179,7 @@ def plot_current(setup_dir, sessions, corrections, plot_dir):
     nrows = -(-n // ncols)
     fig, axes = plt.subplots(nrows, ncols, figsize=(4.6 * ncols, 3.6 * nrows), squeeze=False)
     for ax, ch in zip(axes.ravel(), channels):
-        _draw_channel(ax, session, ch, corrections, color(ch))
+        _draw_channel(ax, session, ch, color(ch))
     for ax in axes.ravel()[n:]:
         ax.set_visible(False)
     fig.suptitle(f"{setup_dir.name.upper().replace('_', '')} – current calibration "
@@ -230,13 +192,12 @@ def plot_current(setup_dir, sessions, corrections, plot_dir):
 def build(setup):
     setup_dir = REPO / setup
     sessions = load_sessions(setup_dir)
-    corrections = load_corrections(setup_dir)
     plot_dir = setup_dir / "calibration" / "plots"
     plot_dir.mkdir(exist_ok=True)
     for old in plot_dir.glob("*.png"):
         old.unlink()
-    path = write_current(setup_dir, sessions, corrections)
-    plot_current(setup_dir, sessions, corrections, plot_dir)
+    path = write_current(setup_dir, sessions)
+    plot_current(setup_dir, sessions, plot_dir)
     print(f"{setup}: {len(sessions)} calibrations, current = {sessions[-1]['folder'].name} "
           f"-> {path}")
 

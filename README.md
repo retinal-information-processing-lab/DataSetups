@@ -63,7 +63,6 @@ as a function of its control, as used by PowerList_to_Voltage (Isomerisation_to_
 calibration/
   2026-02-12/385nm.csv      curve of one channel, one file per LED (units in the header)
   2026-02-12/notes.txt      details: power meter, sensor, power-meter correction, remarks
-  corrections.csv           current fibre power at the reference control: channel,fiber_mW
   current.csv               generated: power at the MEA (µW/cm²) vs control, latest calibration
   plots/                    generated: current.png (all channels) + <channel>.png
 ```
@@ -81,22 +80,14 @@ control_V,fiber_mW,mea_uW_cm2
 - **Calibration** (no ND filter): the curve is measured at the optic fibre (`fiber_mW`), and the
   power at the MEA (`mea_uW_cm2`) once, on the reference row (5 V, or 100 % for a lamp driven
   in % of max power: `control_pct`). That row gives the fibre → MEA ratio.
-- **Correction**: the fibre power measured again at the reference control in the current
-  conditions (ND filters, LED drift). The shape of the curve does not change, so it rescales
-  the whole curve. `corrections.csv` holds one current value per channel.
-- Power at the MEA = `curve(control) × (correction / curve(ref)) × (mea(ref) / curve(ref))`.
+- Power at the MEA = `curve(control) × mea(ref) / curve(ref)`.
 - Old calibrations (MEA2 before 2024-10) measured the curve directly at the MEA: their CSVs
-  have two columns, `control_V,mea_uW_cm2` (or `mea_mW_cm2`), and no ratio nor correction
-  applies to them.
+  have two columns, `control_V,mea_uW_cm2` (or `mea_mW_cm2`), and no ratio applies to them.
 - The newest dated folder is the current calibration. The LED of a channel (for the plot
   colour) is the first part of its name.
 
 **Redoing a calibration**: copy the last calibration folder to a new dated folder, replace the
 values in the channel CSVs, update `notes.txt`, then run `python -m datasetups.calibration mea_N`.
-
-**Correcting (e.g. after changing ND filters)**: write the measured fibre power at the reference
-control in `corrections.csv`, by hand or with
-`datasetups.calibration.set_correction("mea_3", "385nm", 12.26)`, then rebuild.
 
 The calibrations up to 2026-02 were imported from the Excel files of Isomerisation_to_voltage
 with `datasetups/import_xlsx_calibration.py`; columns that were copies of an earlier sheet are
