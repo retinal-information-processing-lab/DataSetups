@@ -3,14 +3,11 @@ LED spectrum fitting, done in log space.
 
 For one folder of repeated spectrometer traces:
   1. signal   – mean of the traces; baseline and noise estimated by sigma clipping on the
-                pixels without signal; isolated single-pixel spikes replaced by the mean
-                of their neighbours; baseline subtracted.
-  2. region   – from the first to the last stretch of at least MIN_RUN_NM where the
-                signal, averaged over 10 nm, is above SNR_THRESHOLD times its noise (so
-                secondary peaks, e.g. the blue peak of a white lamp, are included).
+                pixels without signal; baseline subtracted; pixels averaged in 0.5 nm bins.
+  2. region   – contiguous wavelength range around the peak where the signal, averaged
+                over 10 nm, is above SNR_THRESHOLD times its noise.
   3. fit      – smoothing spline (smoothing chosen by generalised cross-validation) on
-                log10 of the signal averaged in independent FIT_BIN_NM bins inside the
-                region, weighted by SNR² with the SNR capped
+                log10 of the signal inside the region, weighted by SNR² with the SNR capped
                 at SNR_CAP so that the peak does not outweigh the tails. Saturated pixels
                 are left out, so the spline bridges a flattened peak.
   4. tails    – outside the region, log-linear continuation of the fit with the slope of
@@ -35,9 +32,7 @@ STEP            = 0.5
 SATURATION      = 60000   # counts: plateau of the USB2000+ after dark correction
 SNR_THRESHOLD   = 5       # signal / noise, on a 10 nm running average, to be fitted
 DETECT_NM       = 10      # running average used to detect the signal region
-MIN_RUN_NM      = 5       # shortest stretch above threshold counted as signal
-FIT_BIN_NM      = 0.5     # independent bins fitted by the spline (no correlated noise)
-SPIKE_SNR       = 6       # a pixel this many noise σ off its neighbours' mean is a spike
+PRESMOOTH_NM    = 2.5     # running average of the signal before taking its log
 SNR_CAP         = 30      # caps the fit weights: log10 error tolerance ≥ 1/(SNR_CAP·ln10)
 TAIL_NM         = 5       # end of the fit used for the tail slope
 MIN_TAIL_SLOPE  = 0.05    # log10 units per nm: tails decay at least 1 decade per 20 nm
@@ -83,27 +78,6 @@ def baseline_and_noise(mean):
     return base, noise
 
 
-def despike(mean, noise):
-    """Replace isolated single-pixel spikes by the mean of their two neighbours."""
-    out = mean.copy()
-    neighbours = 0.5 * (mean[:-2] + mean[2:])
-    d = mean[1:-1] - neighbours
-    spike = ((np.abs(d) > SPIKE_SNR * noise)
-             & (np.abs(d) > 0.5 * np.abs(neighbours) + 3 * noise)
-             & (np.abs(mean[:-2] - mean[2:]) < np.abs(d)))
-    out[1:-1][spike] = neighbours[spike]
-    return out
-
-
-def _bin_centers(wl, values, centers, width):
-    """Average pixel values in bins of the given width. Returns (binned or NaN, pixels per bin)."""
-    idx = np.round((wl - centers[0]) / width).astype(int)
-    ok = (idx >= 0) & (idx < len(centers))
-    n = np.bincount(idx[ok], minlength=len(centers))
-    total = np.bincount(idx[ok], values[ok], len(centers))
-    return np.where(n > 0, total / np.maximum(n, 1), np.nan), n
-
-
 def _bin(wl, values):
     """Average pixel values in the 0.5 nm bins of FIT_GRID. Returns (binned, pixels per bin)."""
     idx = np.clip(np.round((wl - FIT_GRID[0]) / STEP).astype(int), 0, len(FIT_GRID) - 1)
@@ -113,17 +87,18 @@ def _bin(wl, values):
     return np.interp(FIT_GRID, FIT_GRID[has], binned), np.interp(FIT_GRID, FIT_GRID[has], n[has])
 
 
-def _signal_region(y, noise_bin):
-    """Indices from the first to the last stretch (≥ MIN_RUN_NM) where the 10 nm average
-    is above threshold."""
+def _signal_region(y, noise_bin, exclude):
+    """Contiguous indices around the peak where the 10 nm average is above threshold."""
     w = int(DETECT_NM / STEP) + 1
-    good = uniform_filter1d(y, w) > SNR_THRESHOLD * noise_bin / np.sqrt(w)
-    edges = np.flatnonzero(np.diff(np.r_[0, good.astype(int), 0]))
-    runs = [(a, b - 1) for a, b in zip(edges[::2], edges[1::2])
-            if (b - a) * STEP >= MIN_RUN_NM]
-    if not runs:
-        raise ValueError("no signal above the noise")
-    return runs[0][0], runs[-1][1]
+    detect = uniform_filter1d(y, w)
+    good = detect > SNR_THRESHOLD * noise_bin / np.sqrt(w)
+    peak = np.argmax(np.where(exclude, -np.inf, detect))
+    lo = hi = peak
+    while lo > 0 and good[lo - 1]:
+        lo -= 1
+    while hi < len(y) - 1 and good[hi + 1]:
+        hi += 1
+    return lo, hi
 
 
 def fit(wl, counts):
@@ -131,21 +106,19 @@ def fit(wl, counts):
     saturated_px = (counts >= SATURATION).any(axis=0)
     mean = counts.mean(axis=0)
     base, noise = baseline_and_noise(mean)
-    signal = despike(mean, noise) - base
 
-    y, n_px = _bin(wl, signal)
+    y, n_px = _bin(wl, mean - base)
     saturated = _bin(wl, saturated_px.astype(float))[0] > 0
-    lo, hi = _signal_region(y, noise / np.sqrt(n_px))
+    noise_bin = noise / np.sqrt(n_px)
 
-    centers = np.arange(FIT_GRID[0], FIT_GRID[-1] + STEP / 2, FIT_BIN_NM)
-    y_fit, n_fit = _bin_centers(wl, signal, centers, FIT_BIN_NM)
-    sat_fit = _bin_centers(wl, saturated_px.astype(float), centers, FIT_BIN_NM)[0] > 0
-    with np.errstate(invalid="ignore"):
-        use = ((centers >= FIT_GRID[lo]) & (centers <= FIT_GRID[hi])
-               & (y_fit > 0) & ~sat_fit)
+    lo, hi = _signal_region(y, noise_bin, saturated)
+    y_smooth = uniform_filter1d(y, int(PRESMOOTH_NM / STEP) + 1)
+    use = np.zeros(len(y), bool)
+    use[lo:hi + 1] = True
+    use &= (y_smooth > 0) & ~saturated
 
-    weights = np.minimum(y_fit[use] / (noise / np.sqrt(n_fit[use])), SNR_CAP) ** 2
-    spline = make_smoothing_spline(centers[use], np.log10(y_fit[use]),
+    weights = np.minimum(y_smooth[use] / noise_bin[use], SNR_CAP) ** 2
+    spline = make_smoothing_spline(FIT_GRID[use], np.log10(y_smooth[use]),
                                    w=weights / weights.mean())
 
     log_fit = np.empty(len(y))

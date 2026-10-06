@@ -69,11 +69,9 @@ python -m datasetups.build_photoreceptors
 For each spectrum (`datasetups/spectra.py`), the fit is done in log space on the raw traces:
 
 1. **Signal**: mean of the traces, baseline and noise estimated (sigma clipping) on the pixels
-   without light, isolated single-pixel spikes removed, baseline subtracted, averaged in
-   independent 0.5 nm bins.
-2. **Region**: from the first to the last stretch (≥ 5 nm) where the signal, averaged over
-   10 nm, is more than 5 times its noise, so secondary peaks are included (grey band on the
-   plots).
+   without light, baseline subtracted, averaged in 0.5 nm bins.
+2. **Region**: wavelengths around the peak where the signal, averaged over 10 nm, is more than
+   5 times its noise (grey band on the plots).
 3. **Fit**: smoothing spline on log10 of the signal in that region, weighted by SNR² (SNR
    capped at 30 so the peak does not outweigh the tails), smoothing chosen by generalised
    cross-validation. Saturated pixels are left out.
