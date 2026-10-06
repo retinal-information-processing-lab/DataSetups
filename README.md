@@ -73,7 +73,7 @@ calibration/
   reference control (5 V, or 100 % for a lamp). The power at the MEA is measured once at the
   reference control (`mea_uW_cm2`), which gives the fibre → MEA ratio. `calibration.toml`
   gives, per channel, `control_unit`, `power_unit`, `reference_control`, `mea_uW_cm2`, the
-  power-meter spectral correction used (`pm_correction`) and the `source` in
+  power-meter spectral correction used (`pm_correction`, Thorlabs PM400) and the `source` in
   `light_sources.toml`; plus the date, power meter and notes of the calibration.
 - **Correction**: the fibre power measured again at the reference control in the current
   conditions (ND filters, LED drift). The shape of the curve does not change, so it rescales
@@ -83,7 +83,7 @@ calibration/
   (`curve_position = "mea"`): no ratio nor correction applies to them.
 
 **Redoing a calibration**: copy the last calibration folder to a new dated folder, replace the
-curves (`<channel>.csv`) and `mea_uW_cm2`, update `date`, `power_meter` and `notes`, then run
+curves (`<channel>.csv`) and `mea_uW_cm2`, update `date`, `sensor` and `notes`, then run
 `python -m datasetups.calibration mea_N`. The newest folder is the current calibration.
 
 **Correcting (e.g. after changing ND filters)**: write the measured fibre power at the reference

@@ -149,7 +149,8 @@ def write_session(setup, folder, date, sheet_name, xlsx_name, controls, channels
         f"# Calibration imported from {xlsx_name}, sheet {sheet_name}.",
         "",
         f"date = {date.isoformat()}",
-        'power_meter = ""  # model + sensor head',
+        'power_meter = "Thorlabs PM400"',
+        'sensor = ""  # sensor head of the power meter (to be documented)',
         f'curve_position = "{position}"  # "fiber": curve at the optic fibre; '
         '"mea": curve at the MEA',
     ]

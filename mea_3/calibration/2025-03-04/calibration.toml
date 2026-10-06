@@ -1,7 +1,8 @@
 # Calibration imported from calibration_5_colors_w_MEA_20230403.xlsx, sheet 20250304.
 
 date = 2025-03-04
-power_meter = ""  # model + sensor head
+power_meter = "Thorlabs PM400"
+sensor = ""  # sensor head of the power meter (to be documented)
 curve_position = "fiber"  # "fiber": curve at the optic fibre; "mea": curve at the MEA
 notes = []
 
