@@ -1,4 +1,4 @@
-control,power
+control_V,mea_mW_cm2
 0,0
 0.03,0.0116
 0.05,0.04

@@ -1,0 +1,18 @@
+Calibration 2023-04-03
+Imported from calibration_5_colors_w_MEA_20230403.xlsx, sheet origin.
+
+Power meter: Thorlabs PM400
+Sensor: (to be documented)
+Curves measured at the MEA.
+
+Power-meter spectral correction (as written in the sheet):
+  625nm: 630
+  530nm: 530
+  490nm: 490
+  415nm: 490
+  385nm: 400
+
+Notes:
+  - Date taken from the file name (calibration_5_colors_w_MEA_20230403).
+  - Side table I1:N7 of the sheet (mW/cm² vs 1–6, meaning unknown) not imported.
+  - Blue re-measured with the power meter set at 420 nm: 0.554 mW/cm² at 5 V (×1.157) and 0.127 at 1 V (×1.165).

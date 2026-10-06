@@ -1,5 +1,5 @@
-channel,power,power_unit
-385nm,0.025,mW
-490nm,7.336,mW
-530nm,0.197,mW
-625nm,25.72,mW
+channel,fiber_mW
+385nm,0.025
+490nm,7.336
+530nm,0.197
+625nm,25.72

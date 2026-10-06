@@ -1,0 +1,13 @@
+Calibration 2025-10-10
+Imported from calibration_5_colors_w_MEA_20230403.xlsx, sheet 20251010.
+
+Power meter: Thorlabs PM400
+Sensor: (to be documented)
+Curves measured at the optic fibre (no ND filter); power at the MEA measured at 5 V.
+
+Power-meter spectral correction (as written in the sheet):
+  625nm: 625 sp
+  530nm: 530 sp
+  490nm: 490 sp
+  415nm: 415 sp
+  385nm: 400

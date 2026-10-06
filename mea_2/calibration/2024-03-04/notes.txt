@@ -1,0 +1,13 @@
+Calibration 2024-03-04
+Imported from calibration_5_colors_w_MEA_20230403.xlsx, sheet 20240304.
+
+Power meter: Thorlabs PM400
+Sensor: (to be documented)
+Curves measured at the MEA.
+
+Power-meter spectral correction (as written in the sheet):
+  625nm: 630
+  530nm: 530
+  490nm: 490
+  415nm: 415
+  385nm: 400

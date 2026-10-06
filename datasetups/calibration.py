@@ -5,29 +5,32 @@ Power calibration of the light sources of one setup.
     python -m datasetups.calibration mea_3
 
 Layout of <setup>/calibration/:
-  <YYYY-MM-DD>/calibration.toml  details of one calibration (date, power meter, notes) and
-                                 one [[channel]] per LED: units, reference control, power at
-                                 the MEA at the reference control, power-meter correction
-  <YYYY-MM-DD>/<channel>.csv     curve of one channel: control,power (units in the TOML)
-  corrections.csv                current power at the optic fibre at the reference control,
-                                 one row per channel: channel,power,power_unit
-  current.csv                    generated: power at the MEA (µW/cm²) vs control per channel
-  plots/                         generated: current.png (all channels) + <channel>.png
+  <YYYY-MM-DD>/<channel>.csv  curve of one channel (LED + optics, e.g. 595nm_DM605_F600);
+                              the header gives the units:
+                                control_V,fiber_mW,mea_uW_cm2
+                                0,0,
+                                …
+                                5,93.8,2140
+                              control (V, or pct for % of max power), power at the optic fibre,
+                              and on the reference row (5 V, 100 %) the power measured at the
+                              MEA. A curve measured directly at the MEA has two columns:
+                              control_V,mea_uW_cm2.
+  <YYYY-MM-DD>/notes.txt      details for humans (power meter, sensor, power-meter spectral
+                              correction used, remarks); not read by the code
+  corrections.csv             current power at the optic fibre at the reference control, one
+                              row per channel: channel,fiber_mW
+  current.csv                 generated: power at the MEA (µW/cm²) vs control per channel
+  plots/                      generated: current.png (all channels) + <channel>.png
 
-The calibration curve is measured at the optic fibre (curve_position = "fiber", no ND filter),
-and the power at the MEA is measured once at the reference control (mea_uW_cm2), which gives
-the fibre → MEA ratio. A correction is the fibre power measured again at the reference control,
-in the current conditions (e.g. with ND filters): it rescales the whole curve, whose shape does
-not change. The power at the MEA is then
+The calibration curve is measured at the optic fibre with no ND filter, and the power at the
+MEA once at the reference control, which gives the fibre → MEA ratio. A correction is the fibre
+power measured again at the reference control in the current conditions (ND filters, drift): it
+rescales the whole curve, whose shape does not change. The power at the MEA is
 
-    curve(control) × correction / curve(reference_control) × mea_uW_cm2 / curve(reference_control)
-    = curve(control) × correction × mea_uW_cm2 / curve(reference_control)²
+    curve(control) × correction / curve(ref) × mea(ref) / curve(ref)
 
-with correction = curve(reference_control) when there is none. This is the calculation of
-PowerList_to_Voltage (Isomerisation_to_voltage). The control can be any unit (V, % of max
-power, …): each channel gives its control_unit and reference_control.
-Old sessions measured the curve directly at the MEA (curve_position = "mea"); no ratio nor
-correction is applied to them.
+as in PowerList_to_Voltage (Isomerisation_to_voltage). The newest dated folder is the current
+calibration. The LED of a channel is the first part of its name (595nm_DM605_F600 → 595nm).
 """
 
 import argparse
@@ -42,76 +45,97 @@ import numpy as np
 
 REPO = Path(__file__).resolve().parent.parent
 
-# Factors to µW (power) or µW/cm² (power density)
+# Factors to µW (power) or µW/cm² (power density), as written in the CSV headers
 POWER_UNITS   = {"W": 1e6, "mW": 1e3, "uW": 1.0, "nW": 1e-3}
-DENSITY_UNITS = {"W/cm2": 1e6, "mW/cm2": 1e3, "uW/cm2": 1.0, "nW/cm2": 1e-3}
-
-CORRECTION_FIELDS = ["channel", "power", "power_unit"]
+DENSITY_UNITS = {"W_cm2": 1e6, "mW_cm2": 1e3, "uW_cm2": 1.0, "nW_cm2": 1e-3}
+CONTROL_LABELS = {"pct": "%"}
 
 
 # %% Loading
 
+def read_channel(path):
+    """One channel CSV: control and power arrays, their units, position of the curve and, for a
+    fibre curve, the reference control and the power at the MEA there."""
+    rows = list(csv.reader(open(path, newline="")))
+    header, rows = [h.strip() for h in rows[0]], [r for r in rows[1:] if r]
+    if not header[0].startswith("control_"):
+        raise ValueError(f"{path}: first column must be control_<unit>, got {header[0]}")
+    position, _, power_unit = header[1].partition("_")
+    if position not in ("fiber", "mea"):
+        raise ValueError(f"{path}: second column must be fiber_<unit> or mea_<unit>")
+    ch = {"name": path.stem, "source": path.stem.split("_")[0], "position": position,
+          "control_unit": header[0].removeprefix("control_"), "power_unit": power_unit}
+    data = sorted((float(r[0]), float(r[1]), r[2].strip() if len(r) > 2 else "") for r in rows)
+    ch["control"] = np.array([d[0] for d in data])
+    ch["power"]   = np.array([d[1] for d in data])
+    if position == "fiber":
+        if header[2:3] != ["mea_uW_cm2"]:
+            raise ValueError(f"{path}: a fibre curve needs a third column mea_uW_cm2")
+        refs = [(d[0], float(d[2])) for d in data if d[2]]
+        if len(refs) != 1:
+            raise ValueError(f"{path}: mea_uW_cm2 must be given on exactly one row")
+        ch["reference_control"], ch["mea_uW_cm2"] = refs[0]
+    else:
+        ch["reference_control"] = ch["control"].max()
+    return ch
+
+
+def _wavelength_key(path):
+    num = "".join(c for c in path.stem.split("_")[0] if c.isdigit())
+    return (int(num) if num else 10**6, path.stem)
+
+
 def load_session(folder):
-    """Calibration details with, for each channel, its curve as arrays (control, power)."""
-    with open(folder / "calibration.toml", "rb") as f:
-        session = tomllib.load(f)
-    session["folder"] = folder
-    for ch in session.get("channel", []):
-        path = folder / f"{ch['name']}.csv"
-        data = np.loadtxt(path, delimiter=",", skiprows=1, ndmin=2)
-        order = np.argsort(data[:, 0])
-        ch["control"], ch["power"] = data[order, 0], data[order, 1]
-    return session
+    """One calibration: its folder and channels (one CSV each), in wavelength order."""
+    channels = [read_channel(p) for p in sorted(folder.glob("*.csv"), key=_wavelength_key)]
+    return {"folder": folder, "channel": channels}
 
 
 def load_sessions(setup_dir):
     """All calibrations of a setup, oldest first."""
     folders = sorted(p for p in (setup_dir / "calibration").iterdir()
-                     if p.is_dir() and (p / "calibration.toml").exists())
+                     if p.is_dir() and any(p.glob("*.csv")))
     return [load_session(p) for p in folders]
 
 
 def load_corrections(setup_dir):
-    """Current fibre power at the reference control: {channel: (power, power_unit)}."""
+    """Current fibre power at the reference control: {channel: power in mW}."""
     path = setup_dir / "calibration" / "corrections.csv"
     if not path.exists():
         return {}
-    return {r["channel"]: (float(r["power"]), r["power_unit"])
-            for r in csv.DictReader(open(path, newline=""))}
+    return {r["channel"]: float(r["fiber_mW"]) for r in csv.DictReader(open(path, newline=""))}
 
 
-def set_correction(setup, channel, power, power_unit="mW"):
-    """Store the fibre power measured at the reference control for one channel."""
-    path = REPO / setup / "calibration" / "corrections.csv"
+def set_correction(setup, channel, fiber_mW):
+    """Store the fibre power (mW) measured at the reference control for one channel."""
     corrections = load_corrections(REPO / setup)
-    corrections[channel] = (power, power_unit)
-    with open(path, "w", newline="") as f:
+    corrections[channel] = fiber_mW
+    with open(REPO / setup / "calibration" / "corrections.csv", "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(CORRECTION_FIELDS)
+        w.writerow(["channel", "fiber_mW"])
         for name in sorted(corrections):
-            w.writerow([name, f"{corrections[name][0]:g}", corrections[name][1]])
+            w.writerow([name, f"{corrections[name]:g}"])
 
 
 # %% Calibration
 
-def channel_calibration(ch, curve_position, corrections):
+def channel_calibration(ch, corrections):
     """Power at the MEA (µW/cm²) vs control for one channel, and the correction factor
     applied (None when there is no correction)."""
-    if curve_position == "mea":
+    if ch["position"] == "mea":
         return ch["control"], ch["power"] * DENSITY_UNITS[ch["power_unit"]], None
 
     curve_ref = np.interp(ch["reference_control"], ch["control"], ch["power"])
     factor = None
     if ch["name"] in corrections:
-        power, unit = corrections[ch["name"]]
-        factor = power * POWER_UNITS[unit] / (curve_ref * POWER_UNITS[ch["power_unit"]])
+        factor = corrections[ch["name"]] * POWER_UNITS["mW"] / (curve_ref * POWER_UNITS[ch["power_unit"]])
     ratio = ch["mea_uW_cm2"] / curve_ref
     return ch["control"], ch["power"] * (factor or 1.0) * ratio, factor
 
 
 def current_channels(sessions):
     """Latest calibration: the current configuration of the setup."""
-    return sessions[-1], sessions[-1].get("channel", [])
+    return sessions[-1], sessions[-1]["channel"]
 
 
 # %% Outputs
@@ -124,12 +148,15 @@ def write_current(setup_dir, sessions, corrections):
         w.writerow(["channel", "control", "control_unit", "power_uW_cm2", "calibration",
                     "correction_factor"])
         for ch in channels:
-            control, power, factor = channel_calibration(ch, session["curve_position"],
-                                                         corrections)
+            control, power, factor = channel_calibration(ch, corrections)
             for c, p in zip(control, power):
-                w.writerow([ch["name"], f"{c:g}", ch["control_unit"], f"{p:.6g}",
+                w.writerow([ch["name"], f"{c:g}", _control_label(ch), f"{p:.6g}",
                             session["folder"].name, f"{factor:.6g}" if factor else ""])
     return path
+
+
+def _control_label(ch):
+    return CONTROL_LABELS.get(ch["control_unit"], ch["control_unit"])
 
 
 def _source_colors(setup_dir):
@@ -143,11 +170,11 @@ def _source_colors(setup_dir):
 
 def _draw_channel(ax, session, ch, corrections, color, title_size=11):
     """Calibration of one channel: measured points and the linear interpolation used."""
-    control, power, factor = channel_calibration(ch, session["curve_position"], corrections)
+    control, power, factor = channel_calibration(ch, corrections)
     ax.plot(control, power, "-", color=color, lw=2, alpha=0.85)
     ax.plot(control, power, "o", color=color, ms=4.5, mec="white", mew=0.8, zorder=3)
     ax.set_title(ch["name"], fontsize=title_size, fontweight="bold", loc="left")
-    ax.set_xlabel(f"Control ({ch['control_unit']})")
+    ax.set_xlabel(f"Control ({_control_label(ch)})")
     ax.set_ylabel("Power at the MEA (µW/cm²)")
     ax.set_xlim(left=0)
     ax.set_ylim(bottom=0)
@@ -156,13 +183,13 @@ def _draw_channel(ax, session, ch, corrections, color, title_size=11):
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
 
-    ref, unit = ch["reference_control"], ch["control_unit"]
+    ref, unit = ch["reference_control"], _control_label(ch)
     info = [f"{np.interp(ref, control, power):.4g} µW/cm² at {ref:g} {unit}",
             f"calibration {session['folder'].name}"]
-    if session["curve_position"] == "fiber":
+    if ch["position"] == "fiber":
         if factor:
-            p, pu = corrections[ch["name"]]
-            info.append(f"correction: {p:g} {pu} at {ref:g} {unit} (×{factor:.3g})")
+            info.append(f"correction: {corrections[ch['name']]:g} mW at {ref:g} {unit} "
+                        f"(×{factor:.3g})")
         else:
             info.append("no correction")
     else:
@@ -176,7 +203,7 @@ def plot_current(setup_dir, sessions, corrections, plot_dir):
     """One plot per channel, and current.png with every channel in its own panel."""
     session, channels = current_channels(sessions)
     colors = _source_colors(setup_dir)
-    color = lambda ch: colors.get(ch.get("source"), "0.3")
+    color = lambda ch: colors.get(ch["source"], "0.3")
 
     for ch in channels:
         fig, ax = plt.subplots(figsize=(6.5, 4.5))
