@@ -12,7 +12,7 @@ Layout of <setup>/calibration/:
                               each: datetime,channel,control,power,power_unit,nd_filter,
                               operator,note
   current.csv                 generated: power at the MEA (µW/cm²) vs control per channel
-  plots/current.png           generated: current calibration
+  plots/                      generated: current.png (all channels) + <channel>.png
 
 A curve is measured either at the optic fibre (curve_position = "fiber", power in mW) or
 directly at the MEA (curve_position = "mea", power density). For a fibre curve, the power at
@@ -157,19 +157,73 @@ def write_current(setup_dir, sessions, corrections):
     return path
 
 
-def plot_current(setup_dir, sessions, corrections, path):
-    session, channels = current_channels(sessions)
-    fig, ax = plt.subplots(figsize=(8, 5))
-    for ch in channels:
-        control, power, used = channel_calibration(session, ch, corrections)
-        ax.plot(control, power, "o-", ms=3, label=ch["name"] + (" (corrected)" if used else ""))
-    ax.set_xlabel("Control (" + ", ".join(sorted({c["control_unit"] for c in channels})) + ")")
+def _source_colors(setup_dir):
+    """Color of each [[source]] of light_sources.toml."""
+    path = setup_dir / "light_sources.toml"
+    if not path.exists():
+        return {}
+    with open(path, "rb") as f:
+        return {src["name"]: src["color"] for src in tomllib.load(f).get("source", [])}
+
+
+def _draw_channel(ax, session, ch, corrections, color, title_size=11):
+    """Calibration of one channel: measured points and the linear interpolation used."""
+    control, power, used = channel_calibration(session, ch, corrections)
+    ax.plot(control, power, "-", color=color, lw=2, alpha=0.85)
+    ax.plot(control, power, "o", color=color, ms=4.5, mec="white", mew=0.8, zorder=3)
+    ax.set_title(ch["name"], fontsize=title_size, fontweight="bold", loc="left")
+    ax.set_xlabel(f"Control ({ch['control_unit']})")
     ax.set_ylabel("Power at the MEA (µW/cm²)")
-    ax.grid(True, alpha=0.3)
-    ax.legend(fontsize=8)
-    ax.set_title(f"{setup_dir.name} – current calibration (session {session['folder'].name})")
+    ax.set_xlim(left=0)
+    ax.set_ylim(bottom=0)
+    ax.grid(True, color="0.9", lw=0.8)
+    ax.set_axisbelow(True)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+
+    ref = ch["reference_control"]
+    info = [f"{np.interp(ref, control, power):.4g} µW/cm² at {ref:g} {ch['control_unit']}",
+            f"session {session['folder'].name}"]
+    if session["curve_position"] == "fiber":
+        if used:
+            curve_ref = np.interp(ref, ch["control"], ch["power"]) * POWER_UNITS[ch["power_unit"]]
+            factor = used["power"] * POWER_UNITS[used["power_unit"]] / curve_ref
+            info.append(f"corrected {used['datetime']:%Y-%m-%d}: ×{factor:.3g}"
+                        + (f" ({used['nd_filter']})" if used["nd_filter"] else ""))
+        else:
+            info.append("no correction")
+    else:
+        info.append("curve measured at the MEA")
+    ax.text(0.03, 0.97, "\n".join(info), transform=ax.transAxes, va="top", ha="left",
+            fontsize=8.5, color="0.25",
+            bbox=dict(boxstyle="round,pad=0.4", fc="white", ec="0.85", alpha=0.9))
+
+
+def plot_current(setup_dir, sessions, corrections, plot_dir):
+    """One plot per channel, and current.png with every channel in its own panel."""
+    session, channels = current_channels(sessions)
+    colors = _source_colors(setup_dir)
+    color = lambda ch: colors.get(ch.get("source"), "0.3")
+
+    for ch in channels:
+        fig, ax = plt.subplots(figsize=(6.5, 4.5))
+        _draw_channel(ax, session, ch, corrections, color(ch), title_size=13)
+        fig.tight_layout()
+        fig.savefig(plot_dir / f"{ch['name']}.png", dpi=130)
+        plt.close(fig)
+
+    n = len(channels)
+    ncols = min(3, n)
+    nrows = -(-n // ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(4.6 * ncols, 3.6 * nrows), squeeze=False)
+    for ax, ch in zip(axes.ravel(), channels):
+        _draw_channel(ax, session, ch, corrections, color(ch))
+    for ax in axes.ravel()[n:]:
+        ax.set_visible(False)
+    fig.suptitle(f"{setup_dir.name.upper().replace('_', '')} – current calibration "
+                 f"(session {session['folder'].name})", fontsize=14, fontweight="bold")
     fig.tight_layout()
-    fig.savefig(path, dpi=110)
+    fig.savefig(plot_dir / "current.png", dpi=130)
     plt.close(fig)
 
 
@@ -180,7 +234,7 @@ def build(setup):
     plot_dir = setup_dir / "calibration" / "plots"
     plot_dir.mkdir(exist_ok=True)
     path = write_current(setup_dir, sessions, corrections)
-    plot_current(setup_dir, sessions, corrections, plot_dir / "current.png")
+    plot_current(setup_dir, sessions, corrections, plot_dir)
     print(f"{setup}: {len(sessions)} sessions, current = {sessions[-1]['folder'].name} -> {path}")
 
 

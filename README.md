@@ -65,7 +65,7 @@ calibration/
   2026-02-12/curves.csv     channel,control,control_unit,power,power_unit (one row per point)
   corrections.csv           re-measurements of the power at the reference control
   current.csv               generated: power at the MEA (µW/cm²) vs control, latest session
-  plots/current.png         generated: plot of current.csv
+  plots/                    generated: current.png (all channels) + <channel>.png
 ```
 
 - The curve is measured at the optic fibre (`curve_position = "fiber"`, mW). For each channel,
