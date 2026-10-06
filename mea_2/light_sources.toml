@@ -10,11 +10,35 @@
 #     mea   – measured after the MEA (the MEA filters out part of the UV)
 #     room  – other lights of the room, not part of the stimulation path
 #
-# The LED spectra (spectra_awen/mea2/) are waiting for the LED models.
+# LED models and serial numbers still to be added; the names give the nominal wavelength.
 
 setup = "MEA2"
 
 # --- Light sources -----------------------------------------------------------
+
+[[source]]
+name = "385nm"
+color = "darkviolet"
+
+[[source]]
+name = "415nm"
+color = "royalblue"
+
+[[source]]
+name = "490nm"
+color = "green"
+
+[[source]]
+name = "530nm"
+color = "goldenrod"
+
+[[source]]
+name = "625nm"
+color = "red"
+
+[[source]]
+name = "WarmWhite"
+color = "peru"
 
 [[source]]
 name = "Binocular red light"
@@ -29,6 +53,46 @@ name = "Head lamp"
 color = "red"
 
 # --- Spectra -----------------------------------------------------------------
+
+[[spectrum]]
+id = "385nm_fiber"
+source = "385nm"
+position = "fiber"
+
+[[spectrum]]
+id = "415nm_fiber"
+source = "415nm"
+position = "fiber"
+
+[[spectrum]]
+id = "490nm_fiber"
+source = "490nm"
+position = "fiber"
+
+[[spectrum]]
+id = "530nm_fiber"
+source = "530nm"
+position = "fiber"
+
+[[spectrum]]
+id = "625nm_fiber"
+source = "625nm"
+position = "fiber"
+
+[[spectrum]]
+id = "warmwhite_fiber"
+source = "WarmWhite"
+position = "fiber"
+
+[[spectrum]]
+id = "385nm_mea"
+source = "385nm"
+position = "mea"
+
+[[spectrum]]
+id = "530nm_mea"
+source = "530nm"
+position = "mea"
 
 [[spectrum]]
 id = "room_binocular"
