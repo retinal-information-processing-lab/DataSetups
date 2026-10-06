@@ -57,40 +57,42 @@ fibre output and the `_mea` spectrum when it is measured after the MEA.
 ## Power calibration
 
 `mea_N/calibration/` holds the power of each channel (LED + optics, e.g. `595nm_DM605_F600`)
-as a function of its control (V for the LEDs, % of max power for a lamp, …):
+as a function of its control (V for the LEDs, % of max power for a lamp, …), as used by
+PowerList_to_Voltage (Isomerisation_to_voltage):
 
 ```
 calibration/
-  2026-02-12/session.toml   one folder per calibration session, never edited afterwards
-  2026-02-12/curves.csv     channel,control,control_unit,power,power_unit (one row per point)
-  corrections.csv           re-measurements of the power at the reference control
-  current.csv               generated: power at the MEA (µW/cm²) vs control, latest session
-  plots/                    generated: current.png (all channels) + <channel>.png
+  2026-02-12/calibration.toml  details of the calibration and one [[channel]] per LED
+  2026-02-12/385nm.csv         curve of one channel: control,power (one file per LED)
+  corrections.csv              current fibre power at the reference control: channel,power,power_unit
+  current.csv                  generated: power at the MEA (µW/cm²) vs control, latest calibration
+  plots/                       generated: current.png (all channels) + <channel>.png
 ```
 
-- The curve is measured at the optic fibre (`curve_position = "fiber"`, mW). For each channel,
-  `mea_uW_cm2` is the power measured at the MEA at `reference_control` (5 V, or 100 %), which
-  gives the fibre → MEA ratio. Old sessions measured the curve directly at the MEA
-  (`curve_position = "mea"`).
-- The shape of the curve stays the same when ND filters are added or the LED drifts, so a
-  correction is a single re-measurement of the fibre power at the reference control. The
-  latest correction (newer than the session) rescales the whole curve.
-- Power at the MEA = `curve(control) × correction × mea_uW_cm2 / curve(reference_control)`.
-- Each channel gives its `control_unit` and `reference_control`, so a source driven in % of
-  max power works like a source driven in volts.
-- `pm_correction` records the spectral correction selected on the power meter.
+- **Calibration** (no ND filter): the curve is measured at the optic fibre, from 0 to the
+  reference control (5 V, or 100 % for a lamp). The power at the MEA is measured once at the
+  reference control (`mea_uW_cm2`), which gives the fibre → MEA ratio. `calibration.toml`
+  gives, per channel, `control_unit`, `power_unit`, `reference_control`, `mea_uW_cm2`, the
+  power-meter spectral correction used (`pm_correction`) and the `source` in
+  `light_sources.toml`; plus the date, power meter and notes of the calibration.
+- **Correction**: the fibre power measured again at the reference control in the current
+  conditions (ND filters, LED drift). The shape of the curve does not change, so it rescales
+  the whole curve. `corrections.csv` holds one current value per channel.
+- Power at the MEA = `curve(control) × (correction / curve(reference)) × (mea_uW_cm2 / curve(reference))`.
+- Old calibrations (MEA2 before 2024-10) measured the curve directly at the MEA
+  (`curve_position = "mea"`): no ratio nor correction applies to them.
 
-**Redoing a calibration**: copy the last session folder to a new dated folder, replace the
-values in `curves.csv` and `mea_uW_cm2`, fill `operator`, `power_meter` and `notes`, then run
-`python -m datasetups.calibration mea_N`.
+**Redoing a calibration**: copy the last calibration folder to a new dated folder, replace the
+curves (`<channel>.csv`) and `mea_uW_cm2`, update `date`, `power_meter` and `notes`, then run
+`python -m datasetups.calibration mea_N`. The newest folder is the current calibration.
 
-**Correcting (e.g. after adding an ND filter)**: add a line to `corrections.csv`
-(`datetime,channel,control,power,power_unit,nd_filter,operator,note`), by hand or with
-`datasetups.calibration.add_correction(...)`, then rebuild.
+**Correcting (e.g. after changing ND filters)**: write the measured fibre power at the reference
+control in `corrections.csv`, by hand or with
+`datasetups.calibration.set_correction("mea_3", "385nm", 12.26)`, then rebuild.
 
-The sessions up to 2026-02 were imported from the Excel files of Isomerisation_to_voltage with
-`datasetups/import_xlsx_calibration.py`; columns that were copies of an earlier sheet are not
-imported and are listed in the session notes.
+The calibrations up to 2026-02 were imported from the Excel files of Isomerisation_to_voltage
+with `datasetups/import_xlsx_calibration.py`; columns that were copies of an earlier sheet are
+not imported and are listed in the notes of `calibration.toml`.
 
 ## Rebuilding
 

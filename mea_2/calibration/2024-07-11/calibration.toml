@@ -1,0 +1,27 @@
+# Calibration imported from calibration_5_colors_w_MEA_20230403.xlsx, sheet 20240711.
+
+date = 2024-07-11
+power_meter = ""  # model + sensor head
+curve_position = "mea"  # "fiber": curve at the optic fibre; "mea": curve at the MEA
+notes = [
+  "Yellow and violet measured through a filter: 5 V values 16/599 and 17/686 of those of 20240531.",
+  "625nm identical to the session of 2024-05-31 (copied in the sheet): not imported.",
+  "490nm identical to the session of 2024-05-31 (copied in the sheet): not imported.",
+  "415nm identical to the session of 2024-05-31 (copied in the sheet): not imported.",
+]
+
+[[channel]]
+name = "530nm"  # curve in 530nm.csv
+source = "530nm"
+control_unit = "V"
+power_unit = "uW/cm2"
+reference_control = 5
+pm_correction = "530"  # power-meter spectral correction, as written in the sheet
+
+[[channel]]
+name = "385nm"  # curve in 385nm.csv
+source = "385nm"
+control_unit = "V"
+power_unit = "uW/cm2"
+reference_control = 5
+pm_correction = "400"  # power-meter spectral correction, as written in the sheet

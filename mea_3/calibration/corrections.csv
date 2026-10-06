@@ -1,6 +1,6 @@
-datetime,channel,control,power,power_unit,nd_filter,operator,note
-2026-10-06T12:24:58,385nm,5,12.26,mW,,,imported from last_correction.txt (time of the last update of the file)
-2026-10-06T12:24:58,420nm,5,54.53,mW,,,imported from last_correction.txt (time of the last update of the file)
-2026-10-06T12:24:58,490nm,5,2.68,mW,,,imported from last_correction.txt (time of the last update of the file)
-2026-10-06T12:24:58,530nm_DM605,5,1.09,mW,,,imported from last_correction.txt (time of the last update of the file)
-2026-10-06T12:24:58,595nm_DM605_F600,5,0.4,mW,,,imported from last_correction.txt (time of the last update of the file)
+channel,power,power_unit
+385nm,12.26,mW
+420nm,54.53,mW
+490nm,2.68,mW
+530nm_DM605,1.09,mW
+595nm_DM605_F600,0.4,mW

@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """
 One-time import of the Excel calibration files of Isomerisation_to_voltage into calibration
-sessions (see datasetups/calibration.py).
+folders (see datasetups/calibration.py).
 
     python -m datasetups.import_xlsx_calibration mea_2 path/to/calibration.xlsx path/to/last_correction.txt
 
-Each dated sheet becomes calibration/<YYYY-MM-DD>/ (session.toml + curves.csv). Rows are found
+Each dated sheet becomes calibration/<YYYY-MM-DD>/ (calibration.toml + one <channel>.csv
+per LED). Rows are found
 by their label in column A, columns by their header (row 1), never by cell position:
   rows 4–20      curve (control in column A, one channel per column B–G)
   "Pmeter at"    power-meter spectral correction used, kept as written
   "Direct at 5V" power measured at the MEA at 5 V (µW/cm²), fibre curves only
-  "Indirect w/ filter …" power at the fibre at 5 V through that ND filter, kept as a check
+  "Indirect w/ filter …" power at the fibre at 5 V through that ND filter, kept as a note
 A column identical to an earlier column of the same sheet, or to the same channel in the
-same channel in an earlier session, is a copy, not a measurement: it is skipped and noted in session.toml.
+same channel in an earlier session, is a copy, not a measurement: it is skipped and noted in calibration.toml.
 The values of last_correction.txt go to calibration/corrections.csv.
 """
 
@@ -142,62 +143,53 @@ def read_sheet(setup, ws):
 def write_session(setup, folder, date, sheet_name, xlsx_name, controls, channels, position,
                   notes):
     folder.mkdir(parents=True, exist_ok=True)
+    notes = notes + [f"{ch['name']}: {ch['nd_check'][1]:g} mW at the fibre at 5 V through "
+                     f"{ch['nd_check'][0]}." for ch in channels if "nd_check" in ch]
     lines = [
-        f"# Calibration session imported from {xlsx_name}, sheet {sheet_name}.",
+        f"# Calibration imported from {xlsx_name}, sheet {sheet_name}.",
         "",
         f"date = {date.isoformat()}",
-        'operator = ""',
         'power_meter = ""  # model + sensor head',
-        f'curve_position = "{position}"  # "fiber": power at the optic fibre (mW); '
-        '"mea": power density at the MEA',
+        f'curve_position = "{position}"  # "fiber": curve at the optic fibre; '
+        '"mea": curve at the MEA',
     ]
     lines += (["notes = ["] + [f"  {_toml_value(n)}," for n in notes] + ["]", ""]
               if notes else ["notes = []", ""])
     for ch in channels:
-        lines += ["[[channel]]", f'name = "{ch["name"]}"']
+        lines += ["[[channel]]", f'name = "{ch["name"]}"  # curve in {ch["name"]}.csv']
         if ch["name"] in SOURCES[setup]:
             lines.append(f'source = "{SOURCES[setup][ch["name"]]}"')
-        lines += ['control_unit = "V"', "reference_control = 5"]
+        lines += ['control_unit = "V"', f'power_unit = "{ch["power_unit"]}"',
+                  "reference_control = 5"]
         if "mea_uW_cm2" in ch:
             lines.append(f"mea_uW_cm2 = {ch['mea_uW_cm2']:g}  "
                          "# measured at the MEA at the reference control")
         if "pm_correction" in ch:
             lines.append(f"pm_correction = {_toml_value(ch['pm_correction'])}  "
                          "# power-meter spectral correction, as written in the sheet")
-        if "nd_check" in ch:
-            nd, p = ch["nd_check"]
-            lines.append(f'nd_check = {{ filter = "{nd}", control = 5, power = {p:g}, '
-                         'power_unit = "mW" }')
         lines.append("")
-    (folder / "session.toml").write_text("\n".join(lines))
+    (folder / "calibration.toml").write_text("\n".join(lines))
 
-    with open(folder / "curves.csv", "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["channel", "control", "control_unit", "power", "power_unit"])
-        for ch in channels:
-            for c, p in zip(controls, ch["power"]):
-                w.writerow([ch["name"], f"{c:g}", "V", f"{p:g}", ch["power_unit"]])
+    for ch in channels:
+        with open(folder / f"{ch['name']}.csv", "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["control", "power"])
+            for c, pw in zip(controls, ch["power"]):
+                w.writerow([f"{c:g}", f"{pw:g}"])
 
 
 def import_corrections(setup, txt):
     text = Path(txt).read_text()
-    stamp = dt.datetime.strptime(re.search(r"Last updated:\s+(.*)", text).group(1).strip(),
-                                 "%Y-%m-%d %H:%M:%S")
-    rows = []
-    for name, value in re.findall(r"([\w\d_-]+) LED:\s+([\d.]+|None)", text):
-        if name in CORRECTION_NAMES[setup] and value != "None":
-            rows.append({"datetime": stamp.isoformat(timespec="seconds"),
-                         "channel": CORRECTION_NAMES[setup][name], "control": 5,
-                         "power": float(value), "power_unit": "mW", "nd_filter": "",
-                         "operator": "",
-                         "note": "imported from last_correction.txt (time of the last "
-                                 "update of the file)"})
+    corrections = {CORRECTION_NAMES[setup][name]: float(value)
+                   for name, value in re.findall(r"([\w\d_-]+) LED:\s+([\d.]+|None)", text)
+                   if name in CORRECTION_NAMES[setup] and value != "None"}
     path = REPO / setup / "calibration" / "corrections.csv"
     with open(path, "w", newline="") as f:
-        w = csv.DictWriter(f, CORRECTION_FIELDS)
-        w.writeheader()
-        w.writerows(rows)
-    return rows
+        w = csv.writer(f)
+        w.writerow(CORRECTION_FIELDS)
+        for name in sorted(corrections):
+            w.writerow([name, f"{corrections[name]:g}", "mW"])
+    return corrections
 
 
 def import_xlsx(setup, xlsx, txt):

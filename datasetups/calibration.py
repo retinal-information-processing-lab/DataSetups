@@ -5,31 +5,33 @@ Power calibration of the light sources of one setup.
     python -m datasetups.calibration mea_3
 
 Layout of <setup>/calibration/:
-  <YYYY-MM-DD>/session.toml   metadata of one calibration session (one [[channel]] per source)
-  <YYYY-MM-DD>/curves.csv     power vs control, one row per point:
-                              channel,control,control_unit,power,power_unit
-  corrections.csv             re-measurements of the power at the reference control, one row
-                              each: datetime,channel,control,power,power_unit,nd_filter,
-                              operator,note
-  current.csv                 generated: power at the MEA (µW/cm²) vs control per channel
-  plots/                      generated: current.png (all channels) + <channel>.png
+  <YYYY-MM-DD>/calibration.toml  details of one calibration (date, power meter, notes) and
+                                 one [[channel]] per LED: units, reference control, power at
+                                 the MEA at the reference control, power-meter correction
+  <YYYY-MM-DD>/<channel>.csv     curve of one channel: control,power (units in the TOML)
+  corrections.csv                current power at the optic fibre at the reference control,
+                                 one row per channel: channel,power,power_unit
+  current.csv                    generated: power at the MEA (µW/cm²) vs control per channel
+  plots/                         generated: current.png (all channels) + <channel>.png
 
-A curve is measured either at the optic fibre (curve_position = "fiber", power in mW) or
-directly at the MEA (curve_position = "mea", power density). For a fibre curve, the power at
-the MEA is
+The calibration curve is measured at the optic fibre (curve_position = "fiber", no ND filter),
+and the power at the MEA is measured once at the reference control (mea_uW_cm2), which gives
+the fibre → MEA ratio. A correction is the fibre power measured again at the reference control,
+in the current conditions (e.g. with ND filters): it rescales the whole curve, whose shape does
+not change. The power at the MEA is then
 
-    curve(control) × correction × mea_uW_cm2 / curve(reference_control)
+    curve(control) × correction / curve(reference_control) × mea_uW_cm2 / curve(reference_control)
+    = curve(control) × correction × mea_uW_cm2 / curve(reference_control)²
 
-where mea_uW_cm2 is the power measured at the MEA at the reference control, and correction is
-the latest re-measured fibre power at the reference control divided by curve(reference_control)
-(1 when there is no newer correction). The shape of the curve is kept, only its scale changes.
-The control can be any unit (V, % of max power, …): each channel gives its control_unit and
-reference_control.
+with correction = curve(reference_control) when there is none. This is the calculation of
+PowerList_to_Voltage (Isomerisation_to_voltage). The control can be any unit (V, % of max
+power, …): each channel gives its control_unit and reference_control.
+Old sessions measured the curve directly at the MEA (curve_position = "mea"); no ratio nor
+correction is applied to them.
 """
 
 import argparse
 import csv
-import datetime as dt
 import tomllib
 from pathlib import Path
 
@@ -44,98 +46,71 @@ REPO = Path(__file__).resolve().parent.parent
 POWER_UNITS   = {"W": 1e6, "mW": 1e3, "uW": 1.0, "nW": 1e-3}
 DENSITY_UNITS = {"W/cm2": 1e6, "mW/cm2": 1e3, "uW/cm2": 1.0, "nW/cm2": 1e-3}
 
-CORRECTION_FIELDS = ["datetime", "channel", "control", "power", "power_unit",
-                     "nd_filter", "operator", "note"]
+CORRECTION_FIELDS = ["channel", "power", "power_unit"]
 
 
 # %% Loading
 
 def load_session(folder):
-    """Session metadata with, for each channel, its curve as arrays (control, power)."""
-    with open(folder / "session.toml", "rb") as f:
+    """Calibration details with, for each channel, its curve as arrays (control, power)."""
+    with open(folder / "calibration.toml", "rb") as f:
         session = tomllib.load(f)
     session["folder"] = folder
-    rows = list(csv.DictReader(open(folder / "curves.csv", newline="")))
     for ch in session.get("channel", []):
-        pts = [r for r in rows if r["channel"] == ch["name"]]
-        if not pts:
-            raise ValueError(f"{folder.name}: no curve for channel {ch['name']}")
-        units = {(r["control_unit"], r["power_unit"]) for r in pts}
-        if len(units) != 1:
-            raise ValueError(f"{folder.name}/{ch['name']}: mixed units {units}")
-        (control_unit, power_unit), = units
-        if control_unit != ch["control_unit"]:
-            raise ValueError(f"{folder.name}/{ch['name']}: control unit {control_unit} "
-                             f"differs from session.toml ({ch['control_unit']})")
-        order = np.argsort([float(r["control"]) for r in pts])
-        ch["control"] = np.array([float(pts[i]["control"]) for i in order])
-        ch["power"]   = np.array([float(pts[i]["power"]) for i in order])
-        ch["power_unit"] = power_unit
+        path = folder / f"{ch['name']}.csv"
+        data = np.loadtxt(path, delimiter=",", skiprows=1, ndmin=2)
+        order = np.argsort(data[:, 0])
+        ch["control"], ch["power"] = data[order, 0], data[order, 1]
     return session
 
 
 def load_sessions(setup_dir):
-    """All sessions of a setup, oldest first."""
+    """All calibrations of a setup, oldest first."""
     folders = sorted(p for p in (setup_dir / "calibration").iterdir()
-                     if p.is_dir() and (p / "session.toml").exists())
+                     if p.is_dir() and (p / "calibration.toml").exists())
     return [load_session(p) for p in folders]
 
 
 def load_corrections(setup_dir):
+    """Current fibre power at the reference control: {channel: (power, power_unit)}."""
     path = setup_dir / "calibration" / "corrections.csv"
     if not path.exists():
-        return []
-    rows = list(csv.DictReader(open(path, newline="")))
-    for r in rows:
-        r["datetime"] = dt.datetime.fromisoformat(r["datetime"])
-        r["control"] = float(r["control"])
-        r["power"] = float(r["power"])
-    return rows
+        return {}
+    return {r["channel"]: (float(r["power"]), r["power_unit"])
+            for r in csv.DictReader(open(path, newline=""))}
 
 
-def add_correction(setup, channel, control, power, power_unit="mW", nd_filter="",
-                   operator="", note="", when=None):
-    """Append a re-measurement of the fibre power at the reference control."""
+def set_correction(setup, channel, power, power_unit="mW"):
+    """Store the fibre power measured at the reference control for one channel."""
     path = REPO / setup / "calibration" / "corrections.csv"
-    new = not path.exists()
-    with open(path, "a", newline="") as f:
-        w = csv.DictWriter(f, CORRECTION_FIELDS)
-        if new:
-            w.writeheader()
-        w.writerow({"datetime": (when or dt.datetime.now()).isoformat(timespec="seconds"),
-                    "channel": channel, "control": control, "power": power,
-                    "power_unit": power_unit, "nd_filter": nd_filter,
-                    "operator": operator, "note": note})
+    corrections = load_corrections(REPO / setup)
+    corrections[channel] = (power, power_unit)
+    with open(path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(CORRECTION_FIELDS)
+        for name in sorted(corrections):
+            w.writerow([name, f"{corrections[name][0]:g}", corrections[name][1]])
 
 
 # %% Calibration
 
-def _session_date(session):
-    d = session["date"]
-    return dt.datetime.combine(d, dt.time()) if isinstance(d, dt.date) else d
-
-
-def channel_calibration(session, ch, corrections):
-    """Power at the MEA (µW/cm²) vs control for one channel of one session."""
-    ref = ch["reference_control"]
-    if session["curve_position"] == "mea":
+def channel_calibration(ch, curve_position, corrections):
+    """Power at the MEA (µW/cm²) vs control for one channel, and the correction factor
+    applied (None when there is no correction)."""
+    if curve_position == "mea":
         return ch["control"], ch["power"] * DENSITY_UNITS[ch["power_unit"]], None
 
-    curve_ref = np.interp(ref, ch["control"], ch["power"])
-    later = [c for c in corrections
-             if c["channel"] == ch["name"] and c["control"] == ref
-             and c["datetime"] >= _session_date(session)]
-    correction, used = 1.0, None
-    if later:
-        used = max(later, key=lambda c: c["datetime"])
-        measured = used["power"] * POWER_UNITS[used["power_unit"]]
-        correction = measured / (curve_ref * POWER_UNITS[ch["power_unit"]])
+    curve_ref = np.interp(ch["reference_control"], ch["control"], ch["power"])
+    factor = None
+    if ch["name"] in corrections:
+        power, unit = corrections[ch["name"]]
+        factor = power * POWER_UNITS[unit] / (curve_ref * POWER_UNITS[ch["power_unit"]])
     ratio = ch["mea_uW_cm2"] / curve_ref
-    return ch["control"], ch["power"] * correction * ratio, used
+    return ch["control"], ch["power"] * (factor or 1.0) * ratio, factor
 
 
 def current_channels(sessions):
-    """Channels of the latest session: the current configuration of the setup."""
+    """Latest calibration: the current configuration of the setup."""
     return sessions[-1], sessions[-1].get("channel", [])
 
 
@@ -146,14 +121,14 @@ def write_current(setup_dir, sessions, corrections):
     path = setup_dir / "calibration" / "current.csv"
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["channel", "control", "control_unit", "power_uW_cm2",
-                    "session", "correction"])
+        w.writerow(["channel", "control", "control_unit", "power_uW_cm2", "calibration",
+                    "correction_factor"])
         for ch in channels:
-            control, power, used = channel_calibration(session, ch, corrections)
-            tag = used["datetime"].isoformat(timespec="seconds") if used else ""
+            control, power, factor = channel_calibration(ch, session["curve_position"],
+                                                         corrections)
             for c, p in zip(control, power):
                 w.writerow([ch["name"], f"{c:g}", ch["control_unit"], f"{p:.6g}",
-                            session["folder"].name, tag])
+                            session["folder"].name, f"{factor:.6g}" if factor else ""])
     return path
 
 
@@ -168,7 +143,7 @@ def _source_colors(setup_dir):
 
 def _draw_channel(ax, session, ch, corrections, color, title_size=11):
     """Calibration of one channel: measured points and the linear interpolation used."""
-    control, power, used = channel_calibration(session, ch, corrections)
+    control, power, factor = channel_calibration(ch, session["curve_position"], corrections)
     ax.plot(control, power, "-", color=color, lw=2, alpha=0.85)
     ax.plot(control, power, "o", color=color, ms=4.5, mec="white", mew=0.8, zorder=3)
     ax.set_title(ch["name"], fontsize=title_size, fontweight="bold", loc="left")
@@ -181,15 +156,13 @@ def _draw_channel(ax, session, ch, corrections, color, title_size=11):
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
 
-    ref = ch["reference_control"]
-    info = [f"{np.interp(ref, control, power):.4g} µW/cm² at {ref:g} {ch['control_unit']}",
-            f"session {session['folder'].name}"]
+    ref, unit = ch["reference_control"], ch["control_unit"]
+    info = [f"{np.interp(ref, control, power):.4g} µW/cm² at {ref:g} {unit}",
+            f"calibration {session['folder'].name}"]
     if session["curve_position"] == "fiber":
-        if used:
-            curve_ref = np.interp(ref, ch["control"], ch["power"]) * POWER_UNITS[ch["power_unit"]]
-            factor = used["power"] * POWER_UNITS[used["power_unit"]] / curve_ref
-            info.append(f"corrected {used['datetime']:%Y-%m-%d}: ×{factor:.3g}"
-                        + (f" ({used['nd_filter']})" if used["nd_filter"] else ""))
+        if factor:
+            p, pu = corrections[ch["name"]]
+            info.append(f"correction: {p:g} {pu} at {ref:g} {unit} (×{factor:.3g})")
         else:
             info.append("no correction")
     else:
@@ -221,7 +194,7 @@ def plot_current(setup_dir, sessions, corrections, plot_dir):
     for ax in axes.ravel()[n:]:
         ax.set_visible(False)
     fig.suptitle(f"{setup_dir.name.upper().replace('_', '')} – current calibration "
-                 f"(session {session['folder'].name})", fontsize=14, fontweight="bold")
+                 f"({session['folder'].name})", fontsize=14, fontweight="bold")
     fig.tight_layout()
     fig.savefig(plot_dir / "current.png", dpi=130)
     plt.close(fig)
@@ -233,9 +206,12 @@ def build(setup):
     corrections = load_corrections(setup_dir)
     plot_dir = setup_dir / "calibration" / "plots"
     plot_dir.mkdir(exist_ok=True)
+    for old in plot_dir.glob("*.png"):
+        old.unlink()
     path = write_current(setup_dir, sessions, corrections)
     plot_current(setup_dir, sessions, corrections, plot_dir)
-    print(f"{setup}: {len(sessions)} sessions, current = {sessions[-1]['folder'].name} -> {path}")
+    print(f"{setup}: {len(sessions)} calibrations, current = {sessions[-1]['folder'].name} "
+          f"-> {path}")
 
 
 def main():
