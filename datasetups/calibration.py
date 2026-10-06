@@ -12,7 +12,7 @@ Layout of <setup>/calibration/:
                               each: datetime,channel,control,power,power_unit,nd_filter,
                               operator,note
   current.csv                 generated: power at the MEA (µW/cm²) vs control per channel
-  plots/                      generated
+  plots/current.png           generated: current calibration
 
 A curve is measured either at the optic fibre (curve_position = "fiber", power in mW) or
 directly at the MEA (curve_position = "mea", power density). For a fibre curve, the power at
@@ -157,39 +157,17 @@ def write_current(setup_dir, sessions, corrections):
     return path
 
 
-def plot_session(session, path):
-    channels = session.get("channel", [])
-    fig, ax = plt.subplots(figsize=(8, 5))
-    for ch in channels:
-        ax.plot(ch["control"], ch["power"], "o-", ms=3, label=ch["name"])
-    units = {ch["power_unit"] for ch in channels}
-    controls = {ch["control_unit"] for ch in channels}
-    where = "optic fibre" if session["curve_position"] == "fiber" else "MEA"
-    ax.set_xlabel(f"Control ({', '.join(sorted(controls))})")
-    ax.set_ylabel(f"Power at the {where} ({', '.join(sorted(units))})")
-    ax.set_title(f"{session['folder'].parent.parent.name} – calibration {session['folder'].name}")
-    ax.grid(True, alpha=0.3)
-    ax.legend(fontsize=8)
-    fig.tight_layout()
-    fig.savefig(path, dpi=110)
-    plt.close(fig)
-
-
 def plot_current(setup_dir, sessions, corrections, path):
     session, channels = current_channels(sessions)
-    fig, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(13, 4.5))
+    fig, ax = plt.subplots(figsize=(8, 5))
     for ch in channels:
         control, power, used = channel_calibration(session, ch, corrections)
-        label = ch["name"] + (" (corrected)" if used else "")
-        for ax in (ax_lin, ax_log):
-            ax.plot(control, power, "o-", ms=3, label=label)
-    for ax in (ax_lin, ax_log):
-        ax.set_xlabel("Control (" + ", ".join(sorted({c["control_unit"] for c in channels})) + ")")
-        ax.set_ylabel("Power at the MEA (µW/cm²)")
-        ax.grid(True, alpha=0.3)
-    ax_log.set_yscale("log")
-    ax_lin.legend(fontsize=8)
-    fig.suptitle(f"{setup_dir.name} – current calibration (session {session['folder'].name})")
+        ax.plot(control, power, "o-", ms=3, label=ch["name"] + (" (corrected)" if used else ""))
+    ax.set_xlabel("Control (" + ", ".join(sorted({c["control_unit"] for c in channels})) + ")")
+    ax.set_ylabel("Power at the MEA (µW/cm²)")
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=8)
+    ax.set_title(f"{setup_dir.name} – current calibration (session {session['folder'].name})")
     fig.tight_layout()
     fig.savefig(path, dpi=110)
     plt.close(fig)
@@ -201,8 +179,6 @@ def build(setup):
     corrections = load_corrections(setup_dir)
     plot_dir = setup_dir / "calibration" / "plots"
     plot_dir.mkdir(exist_ok=True)
-    for s in sessions:
-        plot_session(s, plot_dir / f"{s['folder'].name}.png")
     path = write_current(setup_dir, sessions, corrections)
     plot_current(setup_dir, sessions, corrections, plot_dir / "current.png")
     print(f"{setup}: {len(sessions)} sessions, current = {sessions[-1]['folder'].name} -> {path}")
