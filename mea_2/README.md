@@ -13,8 +13,8 @@ of each LED.
 
 ## Power calibration
 
-See [`calibration/`](calibration/) and the root README. Current calibration (µW/cm² at the
-MEA vs control): [`calibration/current.csv`](calibration/current.csv).
+See [`calibration/`](calibration/) and the root README. The newest dated folder is the current
+calibration (power at the MEA vs control):
 
 ![Current calibration](calibration/plots/current.png)
 

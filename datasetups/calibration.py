@@ -17,7 +17,6 @@ Layout of <setup>/calibration/:
                               control_V,mea_uW_cm2.
   <YYYY-MM-DD>/notes.txt      details for humans (power meter, sensor, power-meter spectral
                               correction used, remarks); not read by the code
-  current.csv                 generated: power at the MEA (µW/cm²) vs control per channel
   plots/                      generated: current.png (all channels) + <channel>.png
 
 The calibration curve is measured at the optic fibre with no ND filter, and the power at the
@@ -109,20 +108,6 @@ def current_channels(sessions):
 
 # %% Outputs
 
-def write_current(setup_dir, sessions):
-    session, channels = current_channels(sessions)
-    path = setup_dir / "calibration" / "current.csv"
-    with open(path, "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["channel", "control", "control_unit", "power_uW_cm2", "calibration"])
-        for ch in channels:
-            control, power = channel_calibration(ch)
-            for c, p in zip(control, power):
-                w.writerow([ch["name"], f"{c:g}", _control_label(ch), f"{p:.6g}",
-                            session["folder"].name])
-    return path
-
-
 def _control_label(ch):
     return CONTROL_LABELS.get(ch["control_unit"], ch["control_unit"])
 
@@ -196,10 +181,8 @@ def build(setup):
     plot_dir.mkdir(exist_ok=True)
     for old in plot_dir.glob("*.png"):
         old.unlink()
-    path = write_current(setup_dir, sessions)
     plot_current(setup_dir, sessions, plot_dir)
-    print(f"{setup}: {len(sessions)} calibrations, current = {sessions[-1]['folder'].name} "
-          f"-> {path}")
+    print(f"{setup}: {len(sessions)} calibrations, current = {sessions[-1]['folder'].name}")
 
 
 def main():

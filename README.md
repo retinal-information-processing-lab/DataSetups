@@ -63,7 +63,6 @@ as a function of its control, as used by PowerList_to_Voltage (Isomerisation_to_
 calibration/
   2026-02-12/385nm.csv      curve of one channel, one file per LED (units in the header)
   2026-02-12/notes.txt      details: power meter, sensor, power-meter correction, remarks
-  current.csv               generated: power at the MEA (µW/cm²) vs control, latest calibration
   plots/                    generated: current.png (all channels) + <channel>.png
 ```
 
