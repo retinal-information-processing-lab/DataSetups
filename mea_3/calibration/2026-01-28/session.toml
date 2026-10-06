@@ -1,0 +1,21 @@
+# Calibration session imported from calibration_5_colors_w_MEA_20230403.xlsx, sheet 20260128.
+
+date = 2026-01-28
+operator = ""
+power_meter = ""  # model + sensor head
+curve_position = "fiber"  # "fiber": power at the optic fibre (mW); "mea": power density at the MEA
+notes = [
+  "625nm identical to the session of 2025-03-09 (copied in the sheet): not imported.",
+  "530nm identical to the session of 2025-03-09 (copied in the sheet): not imported.",
+  "490nm identical to the session of 2025-03-09 (copied in the sheet): not imported.",
+  "420nm identical to the session of 2025-03-09 (copied in the sheet): not imported.",
+  "385nm identical to the session of 2025-03-09 (copied in the sheet): not imported.",
+]
+
+[[channel]]
+name = "595nm_DM605_F600"
+source = "595nm"
+control_unit = "V"
+reference_control = 5
+mea_uW_cm2 = 6979  # measured at the MEA at the reference control
+pm_correction = "MEA3_625"  # power-meter spectral correction, as written in the sheet

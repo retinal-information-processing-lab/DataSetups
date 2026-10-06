@@ -1,0 +1,5 @@
+datetime,channel,control,power,power_unit,nd_filter,operator,note
+2026-10-06T11:04:20,490nm,5,7.336,mW,,,imported from last_correction.txt (time of the last update of the file)
+2026-10-06T11:04:20,625nm,5,25.72,mW,,,imported from last_correction.txt (time of the last update of the file)
+2026-10-06T11:04:20,385nm,5,0.025,mW,,,imported from last_correction.txt (time of the last update of the file)
+2026-10-06T11:04:20,530nm,5,0.197,mW,,,imported from last_correction.txt (time of the last update of the file)

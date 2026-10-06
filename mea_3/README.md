@@ -22,6 +22,13 @@ Listed in [`light_sources.toml`](light_sources.toml).
 
 Before the optic fibre, the LEDs go through a series of filters (to be documented).
 
+## Power calibration
+
+See [`calibration/`](calibration/) and the root README. Current calibration (µW/cm² at the
+MEA vs control): [`calibration/current.csv`](calibration/current.csv).
+
+![Current calibration](calibration/plots/current.png)
+
 ## Spectra
 
 All spectra were measured on 2025-12-02 (dates also stored per spectrum in

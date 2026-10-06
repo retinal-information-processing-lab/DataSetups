@@ -11,6 +11,13 @@ Raw traces are in `raw_data/<id>/`, power-meter files in `spectra/<id>.csv` and 
 LED models and serial numbers are still to be added. The names give the nominal wavelength
 of each LED.
 
+## Power calibration
+
+See [`calibration/`](calibration/) and the root README. Current calibration (µW/cm² at the
+MEA vs control): [`calibration/current.csv`](calibration/current.csv).
+
+![Current calibration](calibration/plots/current.png)
+
 ## Spectra
 
 | Source | After the optic fibre (max power) | After the MEA |

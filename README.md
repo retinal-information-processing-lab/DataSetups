@@ -13,6 +13,7 @@ mea_1/ … mea_4/, in_vivo/  one folder per setup
   spectra/<id>.csv         fitted spectrum, one file per spectrum, to load in the power meter
   plots/<id>.png           raw mean vs fitted spectrum
   plots/all_spectra.png    every fitted spectrum of the setup
+  calibration/             power calibration of the light sources (see below)
 photoreceptors/            mouse photoreceptor spectra (Govardovskii templates)
 datasetups/                code that builds the spectra, CSVs and plots
 ```
@@ -53,6 +54,44 @@ The MEA filters part of the UV, so a spectrum measured at the optic-fibre output
 the one measured after the MEA. Use the `_fiber` spectrum when the power is measured at the
 fibre output and the `_mea` spectrum when it is measured after the MEA.
 
+## Power calibration
+
+`mea_N/calibration/` holds the power of each channel (LED + optics, e.g. `595nm_DM605_F600`)
+as a function of its control (V for the LEDs, % of max power for a lamp, …):
+
+```
+calibration/
+  2026-02-12/session.toml   one folder per calibration session, never edited afterwards
+  2026-02-12/curves.csv     channel,control,control_unit,power,power_unit (one row per point)
+  corrections.csv           re-measurements of the power at the reference control
+  current.csv               generated: power at the MEA (µW/cm²) vs control, latest session
+  plots/                    generated: one plot per session + current.png
+```
+
+- The curve is measured at the optic fibre (`curve_position = "fiber"`, mW). For each channel,
+  `mea_uW_cm2` is the power measured at the MEA at `reference_control` (5 V, or 100 %), which
+  gives the fibre → MEA ratio. Old sessions measured the curve directly at the MEA
+  (`curve_position = "mea"`).
+- The shape of the curve stays the same when ND filters are added or the LED drifts, so a
+  correction is a single re-measurement of the fibre power at the reference control. The
+  latest correction (newer than the session) rescales the whole curve.
+- Power at the MEA = `curve(control) × correction × mea_uW_cm2 / curve(reference_control)`.
+- Each channel gives its `control_unit` and `reference_control`, so a source driven in % of
+  max power works like a source driven in volts.
+- `pm_correction` records the spectral correction selected on the power meter.
+
+**Redoing a calibration**: copy the last session folder to a new dated folder, replace the
+values in `curves.csv` and `mea_uW_cm2`, fill `operator`, `power_meter` and `notes`, then run
+`python -m datasetups.calibration mea_N`.
+
+**Correcting (e.g. after adding an ND filter)**: add a line to `corrections.csv`
+(`datetime,channel,control,power,power_unit,nd_filter,operator,note`), by hand or with
+`datasetups.calibration.add_correction(...)`, then rebuild.
+
+The sessions up to 2026-02 were imported from the Excel files of Isomerisation_to_voltage with
+`datasetups/import_xlsx_calibration.py`; columns that were copies of an earlier sheet are not
+imported and are listed in the session notes.
+
 ## Rebuilding
 
 Every CSV and plot is generated from the raw traces:
@@ -62,6 +101,7 @@ conda env create -f environment.yml     # first time only
 conda activate datasetups
 python -m datasetups.build_leds mea_2 mea_3 in_vivo
 python -m datasetups.build_photoreceptors
+python -m datasetups.calibration mea_2 mea_3
 ```
 
 ### LED fit
