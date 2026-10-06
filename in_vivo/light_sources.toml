@@ -1,15 +1,11 @@
 # In vivo setup lights (measured by Jocelyn).
 #
 # [[source]]    one per lamp setting.
-# [[spectrum]]  one per measured spectrum, with the date of the measurement. Raw traces in
-#               raw_data/<id>/, fitted power-meter file in spectra/<id>.csv, plot in
-#               plots/<id>.png. <id> ends with the lamp intensity setting (pct = %); a
-#               trailing _2 marks a second measurement at the same setting.
+# [[spectrum]]  one per lamp, measured at maximum intensity (least noisy), with the date of
+#               the measurement. Raw traces in raw_data/<id>/, fitted power-meter file in
+#               spectra/<id>.csv, plot in plots/<id>.png.
 #   position:
 #     lamp – lamp lighting the in vivo setup
-#
-# raw_data/*_0pct/ hold the traces at 0 % intensity: no light above the noise, kept as dark
-# references and not fitted.
 
 setup = "In vivo"
 
@@ -34,121 +30,25 @@ color = "gray"
 # --- Spectra -----------------------------------------------------------------
 
 [[spectrum]]
-id = "lamp1_red_100pct"
+id = "lamp1_red"
 date = 2026-03-31
 source = "Lamp1 red"
 position = "lamp"
-group = "Lamp1 red"
-color = "#ff0000"
 
 [[spectrum]]
-id = "lamp1_red_100pct_2"
-date = 2026-03-31
-source = "Lamp1 red"
-position = "lamp"
-group = "Lamp1 red"
-color = "#ff0000"
-
-[[spectrum]]
-id = "lamp1_red_75pct"
-date = 2026-03-31
-source = "Lamp1 red"
-position = "lamp"
-group = "Lamp1 red"
-color = "#f53636"
-
-[[spectrum]]
-id = "lamp1_red_50pct"
-date = 2026-03-31
-source = "Lamp1 red"
-position = "lamp"
-group = "Lamp1 red"
-color = "#ee6262"
-
-[[spectrum]]
-id = "lamp1_red_25pct"
-date = 2026-03-31
-source = "Lamp1 red"
-position = "lamp"
-group = "Lamp1 red"
-color = "#e68d8d"
-
-[[spectrum]]
-id = "lamp2_red_100pct"
+id = "lamp2_red"
 date = 2026-03-31
 source = "Lamp2 red"
 position = "lamp"
-group = "Lamp2 red"
-color = "#b22222"
 
 [[spectrum]]
-id = "lamp2_red_75pct"
-date = 2026-03-31
-source = "Lamp2 red"
-position = "lamp"
-group = "Lamp2 red"
-color = "#bc5050"
-
-[[spectrum]]
-id = "lamp2_red_50pct"
-date = 2026-03-31
-source = "Lamp2 red"
-position = "lamp"
-group = "Lamp2 red"
-color = "#c37474"
-
-[[spectrum]]
-id = "lamp2_red_50pct_2"
-date = 2026-03-31
-source = "Lamp2 red"
-position = "lamp"
-group = "Lamp2 red"
-color = "#c37474"
-
-[[spectrum]]
-id = "lamp2_red_25pct"
-date = 2026-03-31
-source = "Lamp2 red"
-position = "lamp"
-group = "Lamp2 red"
-color = "#cb9999"
-
-[[spectrum]]
-id = "lamp2_white30_100pct"
+id = "lamp2_white30"
 date = 2026-03-31
 source = "Lamp2 white 30"
 position = "lamp"
-group = "Lamp2 white 30"
-color = "#daa520"
 
 [[spectrum]]
-id = "lamp2_white30_75pct"
-date = 2026-03-31
-source = "Lamp2 white 30"
-position = "lamp"
-group = "Lamp2 white 30"
-color = "#dab24e"
-
-[[spectrum]]
-id = "lamp2_white30_50pct"
-date = 2026-03-31
-source = "Lamp2 white 30"
-position = "lamp"
-group = "Lamp2 white 30"
-color = "#d9bc73"
-
-[[spectrum]]
-id = "lamp2_white30_25pct"
-date = 2026-03-31
-source = "Lamp2 white 30"
-position = "lamp"
-group = "Lamp2 white 30"
-color = "#d9c798"
-
-[[spectrum]]
-id = "lamp2_white400_100pct"
+id = "lamp2_white400"
 date = 2026-03-31
 source = "Lamp2 white 400"
 position = "lamp"
-group = "Lamp2 white 400"
-color = "#808080"
