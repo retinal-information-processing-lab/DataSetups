@@ -17,10 +17,35 @@ photoreceptors/            mouse photoreceptor spectra (Govardovskii templates)
 datasetups/                code that builds the spectra, CSVs and plots
 ```
 
-## Power-meter CSV format
+## Power-meter CSV format (Thorlabs PM400)
 
 `wavelength_nm,value` with no header, one line per nm from 351 to 849 nm, normalised to 1 at
-the peak (same format as the files already used with the power meter).
+the peak. These files are spectral-correction curves for the Thorlabs PM400 power meter
+([Thorlabs note](Spectral_Correction_PM400.pdf)).
+
+Thorlabs requirements for a spectral-correction file, and how the CSVs here meet them:
+
+| Requirement | CSVs of this repository |
+|---|---|
+| Two columns (wavelength, intensity), comma-delimited | yes |
+| Wavelengths without decimals: step ≥ 1 nm, steps may be unequal | yes, 1 nm steps |
+| No duplicate wavelength | yes |
+| Wavelength range not larger than the sensor's (smaller is fine) | 351–849 nm: check against the sensor head used |
+| Intensity may be decimal, with varying decimal places | yes |
+| UTF-8 encoding, not UTF-8-BOM (avoid saving from Excel) | yes, plain ASCII |
+| File name of 8 characters at most | **no**: rename when copying to the PM400 (e.g. `385fib.csv`) |
+
+Loading a spectrum on the PM400:
+
+1. Install the current PM400 firmware
+   ([Thorlabs software page](https://www.thorlabs.com/software_pages/ViewSoftwarePage.cfm?Code=OPM)).
+2. Connect the PM400 to the PC by USB and set the Owner to USB (red icon at the top right).
+3. Open the USB device and copy the CSV (renamed to ≤ 8 characters) into `SPEC_CURVES`.
+4. Set the Owner back to PM400 and open the Spectral Correction menu.
+5. Press and hold an entry for about a second, delete its old name, then click *Load spectrum*.
+6. Choose the file, click the folder symbol at the top right, then *OK*.
+7. Select the entry in the Spectral Correction menu. The PM400 checks the file and shows an
+   error if its format or data are not valid.
 
 ## Fibre vs MEA spectra
 
