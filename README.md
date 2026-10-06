@@ -7,7 +7,7 @@ and other setup details.
 ## Layout
 
 ```
-mea_1/ … mea_4/            one folder per MEA setup
+mea_1/ … mea_4/, in_vivo/  one folder per setup
   light_sources.toml       light sources (LED model, serial number) and measured spectra (with dates)
   raw_data/<id>/           raw spectrometer traces (Ocean Optics .txt exports)
   spectra/<id>.csv         fitted spectrum, one file per spectrum, to load in the power meter
@@ -60,7 +60,7 @@ Every CSV and plot is generated from the raw traces:
 ```bash
 conda env create -f environment.yml     # first time only
 conda activate datasetups
-python -m datasetups.build_leds mea_3
+python -m datasetups.build_leds mea_2 mea_3 in_vivo
 python -m datasetups.build_photoreceptors
 ```
 
@@ -69,9 +69,11 @@ python -m datasetups.build_photoreceptors
 For each spectrum (`datasetups/spectra.py`), the fit is done in log space on the raw traces:
 
 1. **Signal**: mean of the traces, baseline and noise estimated (sigma clipping) on the pixels
-   without light, baseline subtracted, averaged in 0.5 nm bins.
-2. **Region**: wavelengths around the peak where the signal, averaged over 10 nm, is more than
-   5 times its noise (grey band on the plots).
+   without light, isolated single-pixel spikes removed, baseline subtracted, averaged in
+   independent 0.5 nm bins.
+2. **Region**: from the first to the last stretch (≥ 5 nm) where the signal, averaged over
+   10 nm, is more than 5 times its noise, so secondary peaks are included (grey band on the
+   plots).
 3. **Fit**: smoothing spline on log10 of the signal in that region, weighted by SNR² (SNR
    capped at 30 so the peak does not outweigh the tails), smoothing chosen by generalised
    cross-validation. Saturated pixels are left out.

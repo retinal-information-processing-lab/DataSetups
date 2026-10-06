@@ -27,18 +27,25 @@ POSITION_TITLES = {
     "fiber":   "After the optic fibre",
     "mea":     "After the MEA",
     "room":    "Other lights of the room",
+    "lamp":    "Lamps",
 }
 LOG_YLIM = (-4, 0.1)
 
 
 def load_manifest(setup_dir):
-    """Manifest with every spectrum completed by its source (model, serial, color)."""
+    """Manifest with every spectrum completed by its source (model, serial, color).
+
+    A spectrum may set its own color, and a group (panel of all_spectra.png) other than
+    its position; a missing date is shown as "date unknown".
+    """
     with open(setup_dir / "light_sources.toml", "rb") as f:
         manifest = tomllib.load(f)
     sources = {s["name"]: s for s in manifest["source"]}
     for e in manifest["spectrum"]:
         src = sources[e["source"]]
-        e["color"] = src["color"]
+        e.setdefault("color", src["color"])
+        e.setdefault("group", POSITION_TITLES[e["position"]])
+        e.setdefault("date", "date unknown")
         e["label"] = " ".join(str(src[k]) for k in ("name", "model", "serial") if k in src)
     return manifest
 
@@ -72,19 +79,19 @@ def plot_raw_vs_fit(entry, n_traces, fit, path):
 
 
 def plot_all(manifest, fits, path):
-    positions = [p for p in POSITION_TITLES if any(e["position"] == p for e in manifest["spectrum"])]
-    fig, axes = plt.subplots(len(positions), 2, figsize=(14, 3.6 * len(positions)), squeeze=False)
+    groups = list(dict.fromkeys(e["group"] for e in manifest["spectrum"]))
+    fig, axes = plt.subplots(len(groups), 2, figsize=(14, 3.6 * len(groups)), squeeze=False)
     fig.suptitle(f"{manifest['setup']} – fitted light-source spectra", fontsize=13)
 
-    for row, pos in zip(axes, positions):
+    for row, group in zip(axes, groups):
         for ax, f in ((row[0], lambda y: y), (row[1], _log)):
             for e in manifest["spectrum"]:
-                if e["position"] == pos:
+                if e["group"] == group:
                     ax.plot(spectra.FIT_GRID, f(fits[e["id"]]), color=e["color"], lw=1.8,
                             label=e["id"])
             ax.set_xlim(spectra.FIT_GRID[0], spectra.FIT_GRID[-1])
             ax.grid(True, alpha=0.3)
-        row[0].set_title(POSITION_TITLES[pos], loc="left", fontsize=11)
+        row[0].set_title(group, loc="left", fontsize=11)
         row[0].set_ylabel("Normalised intensity")
         row[1].set_ylabel("log₁₀")
         row[1].set_ylim(*LOG_YLIM)

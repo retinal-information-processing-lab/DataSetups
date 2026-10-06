@@ -1,0 +1,46 @@
+# MEA2 light sources and their measured spectra (measured by Awen).
+#
+# [[source]]    one per light source: name, LED model and serial number (Thorlabs).
+#               LEDs are named after the peak wavelength given by their model name.
+# [[spectrum]]  one per measured spectrum, with the date of the measurement (unknown when
+#               not given). Raw traces in raw_data/<id>/, fitted power-meter file in
+#               spectra/<id>.csv, plot in plots/<id>.png.
+#   position:
+#     fiber – measured at the output of the optic fibre
+#     mea   – measured after the MEA (the MEA filters out part of the UV)
+#     room  – other lights of the room, not part of the stimulation path
+#
+# The LED spectra (spectra_awen/mea2/) are waiting for the LED models.
+
+setup = "MEA2"
+
+# --- Light sources -----------------------------------------------------------
+
+[[source]]
+name = "Binocular red light"
+color = "saddlebrown"
+
+[[source]]
+name = "Dissection lamp"
+color = "firebrick"
+
+[[source]]
+name = "Head lamp"
+color = "red"
+
+# --- Spectra -----------------------------------------------------------------
+
+[[spectrum]]
+id = "room_binocular"
+source = "Binocular red light"
+position = "room"
+
+[[spectrum]]
+id = "room_dissection_lamp"
+source = "Dissection lamp"
+position = "room"
+
+[[spectrum]]
+id = "room_head_lamp"
+source = "Head lamp"
+position = "room"
